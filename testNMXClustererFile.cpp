@@ -127,11 +127,20 @@ void compareClusterToEvents(nmx::cluster cluster, std::vector<plane> &events) {
 
     auto cl = convertToVector(cluster);
 
+    plane pbuf_orig = cl;
+    plane pbuf_lost;
+    plane pbuf_gained;
+
+    std::cout << "Orig size " << pbuf_orig.size() << std::endl;
+
     for (auto it = events.begin(); it != events.end();) {
 
         plane plane = *it;
 
+
+
 /*
+ *
         std::cout << "Comparing : \n";
         printCluster(cl);
         std::cout << "To : \n";
@@ -150,11 +159,13 @@ void compareClusterToEvents(nmx::cluster cluster, std::vector<plane> &events) {
                 if (std::abs(descrepancy) < min_lostpoints) {
                     min_lostpoints = std::abs(descrepancy);
                     best_lost = ievent;
+                    pbuf_lost = plane;
                 }
             } else {
                 if (descrepancy < min_gainedpoints) {
                     min_gainedpoints = descrepancy;
                     best_gained = ievent;
+                    pbuf_gained = plane;
                 }
             }
         }
@@ -163,19 +174,29 @@ void compareClusterToEvents(nmx::cluster cluster, std::vector<plane> &events) {
         ievent++;
     }
 
+
+    std::cout << "Orig size " << pbuf_orig.size() << std::endl;
+
+
     std::cout << "Best match ";
 
+    printCluster(pbuf_orig);
+
     if (min_lostpoints < min_gainedpoints) {
-        std::cout << "lost " << min_lostpoints << " points!\n";
+        std::cout << "lost " << min_lostpoints << " points from :\n";
+        printCluster(pbuf_lost);
         events.erase(events.begin()+best_lost);
 
     } else {
         std::cout << "gained " << min_gainedpoints << " points!\n";
+        printCluster(pbuf_gained);
         events.erase(events.begin()+best_gained);
     }
 }
 
 int main() {
+
+    srand(1);
 
     uint32_t nspertimebin = 32;
     uint32_t maxbinsperevent = 30;
@@ -193,9 +214,13 @@ int main() {
 
     event event = reader.ReadNextEvent();
 
-    while (repeat < 10) {
+    std::cout << "IGH" << std::endl;
+
+    while (repeat < 1) {
 
         std::cout << "*** Repeat # " << repeat << " ***\n";
+
+        //plane p;
 
         for (int iplane = 0; iplane < 2; iplane ++) {
 
@@ -223,6 +248,10 @@ int main() {
                 uint32_t time = point.time;
                 uint32_t charge = point.charge;
 
+
+
+                //p.push_back(point);
+
                 //std::cout << "Added data-point (" << strip << ", " << time << ", " << charge << ")\n";
                 c.addDataPoint(strip, time, charge);
                 //std::cout << "Buffer:\n";
@@ -233,7 +262,7 @@ int main() {
 
                 if (finalcluster.npoints > 0) {
 
-                    std::cout << "Got a new cluster. Comparint to << " << insertedEvents.size() << " stored events\n";
+                    std::cout << "Got a new cluster. Comparing to " << insertedEvents.size() << " stored events\n";
 
                     compareClusterToEvents(finalcluster, insertedEvents);
 
@@ -251,6 +280,8 @@ int main() {
                     finalcluster.npoints = 0;
                 }
             }
+
+            //insertedEvents.push_back(p);
 
         }
 

@@ -55,6 +55,8 @@ bool Clusterer::addDataPoint(uint32_t strip, uint32_t time, uint32_t charge) {
 
 bool Clusterer::addDataPoint(const nmx::data_point &point) {
 
+    bool verbose = false;
+
     if (point.strip >= nmx::STRIPS_PER_PLANE) {
         std::cerr << "<addDataPoint> Strip # " << point.strip << " is larger than " << nmx::STRIPS_PER_PLANE-1
                   << std::endl;
@@ -62,27 +64,43 @@ bool Clusterer::addDataPoint(const nmx::data_point &point) {
 
         return false;
     }
+/*
+    if (point.strip == 162)
+        verbose = true;
+*/
+    if (verbose) {
+        printTimeOrderedBuffer();
+        printMask();
+        printClusterBuffer();
+    }
 
     uint minorTime = getMinorTime(point.time);
     uint majorTime = getMajorTime(point.time);
-/*
-    std::cout << "B1 = " << minorTime << ", B2 = " << majorTime << ", B2_buffer[" << minorTime << "] = " << m_majortime_buffer[minorTime]
-              << " B2_buffer[0] = " << m_majortime_buffer.at(0) << " i1 = " << m_i1 << std::endl;
-*/
+
+    if (verbose) {
+        printPoint(point);
+        std::cout << "B1 = " << minorTime << ", B2 = " << majorTime << ", B2_buffer[" << minorTime << "] = "
+                  << m_majortime_buffer[minorTime] << " B2_buffer[0] = " << m_majortime_buffer.at(0) << " i1 = " << m_i1
+                  << std::endl;
+    }
+
     if ( majorTime >= (m_majortime_buffer.at(0) + 1) ) {
 
         if ( majorTime == (m_majortime_buffer.at(0) + 1) ) {
 
-            //std::cout << "Case 1\n";
+            if (verbose)
+                std::cout << "Case 1\n";
 
             for (uint idx = m_i1+1; idx <= nmx::MINOR_BITMASK; idx++) {
-                //std::cout << "Transfering buffer " << idx << std::endl;
+                if (verbose)
+                    std::cout << "Transfering buffer " << idx << std::endl;
                 transfer(m_time_ordered_buffer.at(idx));
                 m_majortime_buffer.at(idx) = majorTime - 1;
             }
 
             for (uint idx = 0; idx <= std::min(m_i1, minorTime); idx++) {
-                //std::cout << "Transfering buffer " << idx << std::endl;
+                if (verbose)
+                    std::cout << "Transfering buffer " << idx << std::endl;
                 transfer(m_time_ordered_buffer.at(idx));
                 m_majortime_buffer.at(idx) = majorTime;
             }
@@ -92,16 +110,19 @@ bool Clusterer::addDataPoint(const nmx::data_point &point) {
 
         } else { // majorTime > (m_majortime_buffer.at(0) + 1)
 
-            //std::cout << "Case 2\n";
+            if (verbose)
+                std::cout << "Case 2\n";
 
             for (uint idx = m_i1+1; idx <= nmx::MINOR_BITMASK; idx++) {
-                //std::cout << "Transfering buffer " << idx << std::endl;
+                if (verbose)
+                    std::cout << "Transfering buffer " << idx << std::endl;
                 transfer(m_time_ordered_buffer.at(idx));
                 m_majortime_buffer.at(idx) = majorTime - 1;
             }
 
             for (uint idx = 0; idx <= m_i1; idx++) {
-                //std::cout << "Transfering buffer " << idx << std::endl;
+                if (verbose)
+                    std::cout << "Transfering buffer " << idx << std::endl;
                 transfer(m_time_ordered_buffer.at(idx));
                 m_majortime_buffer.at(idx) = majorTime;
             }
@@ -116,10 +137,12 @@ bool Clusterer::addDataPoint(const nmx::data_point &point) {
 
             case 1:
 
-                //std::cout << "Case 3\n";
+                if (verbose)
+                    std::cout << "Case 3\n";
 
                 for (uint idx = m_i1 + 1; idx <= minorTime; idx++) {
-                    //std::cout << "Transfering buffer " << idx << std::endl;
+                    if (verbose)
+                        std::cout << "Transfering buffer " << idx << std::endl;
                     transfer(m_time_ordered_buffer.at(idx));
                     m_majortime_buffer.at(idx) = majorTime;
                 }
@@ -131,7 +154,8 @@ bool Clusterer::addDataPoint(const nmx::data_point &point) {
 
             case 0:
 
-                //std::cout << "Case 4\n";
+                if (verbose)
+                    std::cout << "Case 4\n";
 
                 addToBuffer(point, minorTime);
 
@@ -145,6 +169,13 @@ bool Clusterer::addDataPoint(const nmx::data_point &point) {
 
         }
     }
+
+    if (verbose) {
+        printTimeOrderedBuffer();
+        printMask();
+        printClusterBuffer();
+    }
+
 }
 
 inline void Clusterer::addToBuffer(const nmx::data_point &point, const uint &minorTime) {
@@ -178,12 +209,21 @@ bool Clusterer::transfer(nmx::buffer &buf) {
 
     bool verbose = false;
 
-    if (verbose)
+    if (verbose) {
         std::cout << "Transfering ...\n";
+        printTimeOrderedBuffer();
+    }
 
     for (int ipoint = 0; ipoint < buf.npoints; ipoint++) {
 
         nmx::data_point point = buf.data.at(ipoint);
+/*
+        if (point.strip == 162)
+            verbose = true;
+*/
+        if (verbose)
+            std::cout << "Transfering point " << ipoint << ", strip = " << point.strip << ", time = "
+                      << point.time << ", charge = " << point.charge << std::endl;
 
         if (point.strip >= nmx::STRIPS_PER_PLANE) {
             std::cerr << "<transfer> Strip # " << point.strip << " of point " << ipoint << " is larger than "
@@ -236,7 +276,7 @@ bool Clusterer::transfer(nmx::buffer &buf) {
                         // Neither clusters are "old"
                         if (verbose)
                             std::cout << "Neither are old" << std::endl;
-                        mergeAndInsert(point);
+                        mergeAndInsert(lo_idx, hi_idx, point);
                         break;
                     case 1:
                         // Only lo-cluster is "old"
@@ -274,6 +314,8 @@ bool Clusterer::transfer(nmx::buffer &buf) {
         m_boxes.printQueue();
         m_boxes.printBoxesInQueue();
     }
+   // m_boxes.printQueue();
+   // m_boxes.printBoxesInQueue();
 
     buf.npoints = 0;
 
@@ -356,7 +398,7 @@ bool Clusterer::insertInCluster(nmx::data_point &point) {
     point = {0, 0, 0};
 }
 
-bool Clusterer::mergeAndInsert(nmx::data_point &point) {
+bool Clusterer::mergeAndInsert(uint32_t lo_idx, uint32_t hi_idx, nmx::data_point &point) {
 
     bool verbose = false;
 
@@ -373,14 +415,13 @@ bool Clusterer::mergeAndInsert(nmx::data_point &point) {
         return false;
     }
 
+    /*
     // Find cluster numbers
     uint lo = getLoBound(point.strip);
     uint hi = getHiBound(point.strip);
 
     int cluster_idx1 = -1;
     int cluster_idx2 = -1;
-
-    uint pos = 0;
 
     for (uint istrip = lo; istrip <= hi; istrip++) {
 
@@ -392,7 +433,6 @@ bool Clusterer::mergeAndInsert(nmx::data_point &point) {
                 cluster_idx1 = cluster_idx;
             else if (cluster_idx2 == -1 && cluster_idx1 != cluster_idx) {
                 cluster_idx2 = cluster_idx;
-                pos = istrip;
             }
         }
     }
@@ -407,37 +447,62 @@ bool Clusterer::mergeAndInsert(nmx::data_point &point) {
                   << cluster_idx2 << std::endl;
         return false;
     }
+*/
 
     int final_cluster = -1;
     int remove_cluster = -1;
     int incr = 0;
 
-    int lo_boxsize = m_boxes.getBox(cluster_idx1).max_strip - m_boxes.getBox(cluster_idx1).min_strip;
-    int hi_boxsize = m_boxes.getBox(cluster_idx2).max_strip - m_boxes.getBox(cluster_idx2).min_strip;
+    int lo_boxsize = m_boxes.getBox(lo_idx).max_strip - m_boxes.getBox(lo_idx).min_strip;
+    int hi_boxsize = m_boxes.getBox(hi_idx).max_strip - m_boxes.getBox(hi_idx).min_strip;
+
+    if (verbose) {
+        std::cout << "Size of box " << lo_idx << " = " << lo_boxsize << std::endl;
+        std::cout << "Size of box " << hi_idx << " = " << hi_boxsize << std::endl;
+    }
+
+    m_cluster.at(point.strip) = point;
+
+    uint pos;
+    uint end;
 
     if (lo_boxsize > hi_boxsize) {
-        final_cluster = cluster_idx1;
-        remove_cluster = cluster_idx2;
+        final_cluster = lo_idx;
+        remove_cluster = hi_idx;
         incr = 1;
+        pos = m_boxes.getBox(lo_idx).max_strip + nmx::INCLUDE_N_NEIGHBOURS;
+        end = m_boxes.getBox(hi_idx).max_strip + nmx::INCLUDE_N_NEIGHBOURS;
+        m_boxes.getBox(final_cluster).max_strip = m_boxes.getBox(remove_cluster).max_strip;
+        m_boxes.getBox(final_cluster).max_time = m_boxes.getBox(remove_cluster).max_time;
     }
 
     if (lo_boxsize < hi_boxsize) {
-        final_cluster = cluster_idx2;
-        remove_cluster = cluster_idx1;
+        final_cluster = hi_idx;
+        remove_cluster = lo_idx;
         incr = -1;
-        pos -= 1;
+        pos = m_boxes.getBox(hi_idx).min_strip - nmx::INCLUDE_N_NEIGHBOURS;
+        end = m_boxes.getBox(lo_idx).min_strip - nmx::INCLUDE_N_NEIGHBOURS;
+        m_boxes.getBox(final_cluster).min_strip = m_boxes.getBox(remove_cluster).min_strip;
+        m_boxes.getBox(final_cluster).min_time = m_boxes.getBox(remove_cluster).min_time;
     }
 
     if (lo_boxsize == hi_boxsize) {
-        if (cluster_idx1 > cluster_idx2) {
-            final_cluster = cluster_idx1;
-            remove_cluster = cluster_idx2;
+        if (lo_idx > hi_idx) {
+            final_cluster = lo_idx;
+            remove_cluster = hi_idx;
             incr = 1;
+            pos = m_boxes.getBox(lo_idx).max_strip + nmx::INCLUDE_N_NEIGHBOURS;
+            end = m_boxes.getBox(hi_idx).max_strip + nmx::INCLUDE_N_NEIGHBOURS;
+            m_boxes.getBox(final_cluster).max_strip = m_boxes.getBox(remove_cluster).max_strip;
+            m_boxes.getBox(final_cluster).max_time = m_boxes.getBox(remove_cluster).max_time;
         } else {
-            final_cluster = cluster_idx2;
-            remove_cluster = cluster_idx1;
+            final_cluster = hi_idx;
+            remove_cluster = lo_idx;
             incr = -1;
-            pos -= 1;
+            pos = m_boxes.getBox(hi_idx).max_strip - nmx::INCLUDE_N_NEIGHBOURS;
+            end = m_boxes.getBox(lo_idx).min_strip - nmx::INCLUDE_N_NEIGHBOURS;
+            m_boxes.getBox(final_cluster).min_strip = m_boxes.getBox(remove_cluster).min_strip;
+            m_boxes.getBox(final_cluster).min_time = m_boxes.getBox(remove_cluster).min_time;
         }
     }
 
@@ -448,26 +513,18 @@ bool Clusterer::mergeAndInsert(nmx::data_point &point) {
 
     m_boxes.releaseBox(remove_cluster);
 
-/*
-    if (verbose) {
-        nmx::box cleared_box = m_boxes.at(remove_cluster);
-        std::cout << "Box " << (int) remove_cluster << " = [ " << cleared_box.min_strip << ", " << cleared_box.max_strip
-                  << " ] [ " << cleared_box.min_time << ", " << cleared_box.max_time << " ]\n";
-    }
-  */
-    while (m_mask.at(pos) == remove_cluster) {
+    uint mask_at_pos = m_mask.at(pos);
+
+    while (pos != end + incr) {
 
         if (verbose)
             std::cout << "Pos = " << pos << std::endl;
 
         m_mask.at(pos) = final_cluster;
 
-        nmx::data_point data_temp = m_cluster.at(pos);
-
-        if (data_temp.charge != 0)
-            m_boxes.updateBox(final_cluster, data_temp.strip, data_temp.time);
-
         pos += incr;
+
+        mask_at_pos = m_mask.at(pos);
     }
 
     if (verbose)
@@ -676,15 +733,56 @@ void Clusterer::printClusterBuffer() {
     std::cout << "Cluster buffer :\n";
 
     std::cout << "Strip    ";
-    for (uint i = 0; i < nmx::STRIPS_PER_PLANE; i++)
-        std::cout << std::setw(6) << i;
+    for (uint i = 0; i < nmx::STRIPS_PER_PLANE; i++) {
+        if (m_cluster.at(i).charge != 0)
+            std::cout << std::setw(6) << i;
+    }
     std::cout << "\n";
     std::cout << "Time     ";
     for (uint i = 0; i < nmx::STRIPS_PER_PLANE; i++)
-        std::cout << std::setw(6) << m_cluster.at(i).time;
+        if (m_cluster.at(i).charge != 0)
+            std::cout << std::setw(6) << m_cluster.at(i).time;
     std::cout << "\n";
     std::cout << "Charge   ";
     for (uint i = 0; i < nmx::STRIPS_PER_PLANE; i++)
-        std::cout << std::setw(6) << m_cluster.at(i).charge;
+        if (m_cluster.at(i).charge != 0)
+            std::cout << std::setw(6) << m_cluster.at(i).charge;
     std::cout << "\n";
+}
+
+void Clusterer::printTimeOrderedBuffer() {
+
+    std::cout << "Time ordered buffer :\n";
+
+    for (uint idx = 0; idx < nmx::MAX_MINOR; idx++) {
+
+        auto buf = m_time_ordered_buffer.at(idx);
+
+        if (buf.npoints == 0)
+            continue;
+
+        std::cout << "Index " << idx << std::endl;
+
+        std::cout << "Strip  ";
+        for (uint ientry = 0; ientry < buf.npoints; ientry++) {
+
+            auto point = buf.data.at(ientry);
+            std::cout << std::setw(5) << point.strip;
+        }
+
+        std::cout << "\nTime   ";
+        for (uint ientry = 0; ientry < buf.npoints; ientry++) {
+
+            auto point = buf.data.at(ientry);
+            std::cout << std::setw(5) << point.time;
+        }
+
+        std::cout << "\nCharge ";
+        for (uint ientry = 0; ientry < buf.npoints; ientry++) {
+
+            auto point = buf.data.at(ientry);
+            std::cout << std::setw(5) << point.charge;
+        }
+        std::cout << "\n";
+    }
 }

@@ -46,7 +46,7 @@ private:
     uint checkMask(uint strip, int &lo_idx, int &hi_idx);
     bool newCluster(nmx::data_point &point);
     bool insertInCluster(nmx::data_point &point);
-    bool mergeAndInsert(nmx::data_point &point);
+    bool mergeAndInsert(uint32_t lo_idx, uint32_t hi_idx, nmx::data_point &point);
     bool flushCluster(const int &boxid);
 
     uint getLoBound(int strip);
@@ -73,6 +73,7 @@ public:
     void printBox(const nmx::box &box);
     void printPoint(const nmx::data_point &point);
     void printClusterBuffer();
+    void printTimeOrderedBuffer();
 };
 
 #endif //NMX_CLUSTERER_CLUSTERER_H

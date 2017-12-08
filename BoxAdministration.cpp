@@ -47,6 +47,8 @@ void BoxAdministration::insertBoxInQueue(const uint &ibox) {
 
 void BoxAdministration::releaseBox(const uint &ibox) {
 
+    //std::cout << "Releasing box " << ibox;
+
     int emptyBox = ibox;
 
     if (emptyBox != m_queueHead && emptyBox != m_queueTail)  {
@@ -66,6 +68,8 @@ void BoxAdministration::releaseBox(const uint &ibox) {
 
 void BoxAdministration::releaseBoxFromMiddle(const uint &emptyBox) {
 
+    //std::cout << " from middle\n";
+
     int leftBox  = m_boxList.at(emptyBox).link2;
     int rightBox = m_boxList.at(emptyBox).link1;
     m_boxList[leftBox].link1  = rightBox;
@@ -78,6 +82,8 @@ void BoxAdministration::releaseBoxFromTail() {
     // Be aware !!!
     // empty box may be negative
 
+    //std::cout << " from tail\n";
+
     int emptyBox = m_queueTail;
     m_queueTail = m_boxList[emptyBox].link2;
     if (m_boxList[emptyBox].link2 > -1)
@@ -88,6 +94,8 @@ void BoxAdministration::releaseBoxFromHead() {
 
     // Be aware !!!
     // empty box may be negative
+
+    //std::cout << " from head\n";
 
     int emptyBox = m_queueHead;
     m_queueHead = m_boxList[emptyBox].link1;
@@ -193,6 +201,8 @@ void BoxAdministration::printBoxesInQueue() {
         std::cout << "Box " << boxid << " :\n";
         std::cout << "        Strips [" << box.min_strip << ", " << box.max_strip << "]\n";
         std::cout << "        Time   [" << box.min_time << ", " << box.max_time << "]\n";
+        std::cout << "        Link 1 = " << box.link1 << std::endl;
+        std::cout << "        Link 2 = " << box.link2 << std::endl;
         boxid = box.link2;
     }
 

@@ -67,6 +67,8 @@ event SpecialDataReader::ReadNextEvent() {
                 point.charge = data.at(3);
 
                 plane->push_back(point);
+
+                oldpos = m_ifile.tellg();  // store current position
             }
         }
     }

@@ -37,8 +37,12 @@ event SpecialDataReader::ReadNextEvent() {
 
             } else {
 
+                std::cout << "Finished event\n";
+
                 inevent = false;
                 m_ifile.seekg(oldpos);
+
+                return evt;
 
             }
         } else {

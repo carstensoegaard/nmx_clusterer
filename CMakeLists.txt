@@ -6,7 +6,7 @@ set (CMAKE_CXX_STANDARD 11)
 #add_executable(testnmxclusterer testNMXClusterer.cpp NMXClustererDefinitions.h BoxAdministration.h BoxAdministration.cpp Clusterer.h Clusterer.cpp)
 
 set(testfileSOURCE testNMXClustererFile.cpp NMXClustererSettings.h NMXClustererDefinitions.h BoxAdministration.h BoxAdministration.cpp Clusterer.h Clusterer.cpp)
-add_executable(testnmxclusterfile testNMXClustererFile.cpp NMXClustererSettings.h NMXClustererDefinitions.h SpecialDataReader.h SpecialDataReader.cpp BoxAdministration.h BoxAdministration.cpp Clusterer.h Clusterer.cpp)
+add_executable(testnmxclusterfile testNMXClustererFile.cpp NMXClustererSettings.h NMXClustererDefinitions.h SpecialDataReader.h SpecialDataReader.cpp EventManager.h EventManager.cpp BoxAdministration.h BoxAdministration.cpp Clusterer.h Clusterer.cpp)
 
 #enable_testing()
 #find_package(GTest REQUIRED)

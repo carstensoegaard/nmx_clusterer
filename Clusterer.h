@@ -18,7 +18,9 @@ public:
     bool addDataPoint(const nmx::data_point &point);
     bool addDataPoint(uint32_t strip, uint32_t time, uint32_t charge);
 
-    nmx::cluster& getFinalCluster() { return m_final_cluster; }
+    //nmx::cluster& getFinalCluster() { return m_final_cluster; }
+    std::vector<nmx::cluster> &getProducedClusters() { return m_produced_clusters; }
+
 
 private:
 
@@ -34,7 +36,8 @@ private:
 
     nmx::cluster_data m_cluster;
 
-    nmx::cluster m_final_cluster;
+    //nmx::cluster m_final_cluster;
+    std::vector<nmx::cluster> m_produced_clusters;
 
 
     uint32_t getMinorTime(uint32_t time);

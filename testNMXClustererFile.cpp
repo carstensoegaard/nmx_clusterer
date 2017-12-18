@@ -10,6 +10,7 @@
 #include "NMXClustererDefinitions.h"
 #include "Clusterer.h"
 #include "SpecialDataReader.h"
+#include "EventManager.h"
 
 void printBuffer(const nmx::row_array &mask, const nmx::time_ordered_buffer &buffer) {
 
@@ -46,13 +47,21 @@ void printCluster(const std::vector<nmx::data_point> &cluster) {
 
     uint ipoint  =  0;
 
-    for (auto &point : cluster) {
-        std::cout << "        Point " << ipoint << std::endl;
-        std::cout << "          Strip = " << point.strip << ", charge = " << point.charge << ", time = " << point.time
-                  << std::endl;
-
-        ipoint++;
+    for (int i = 0; i < cluster.size(); i++) {
+        auto point = cluster.at(i);
+        std::cout << std::setw(8) << point.strip;
     }
+    std::cout << "\n";
+    for (int i = 0; i < cluster.size(); i++) {
+        auto point = cluster.at(i);
+        std::cout << std::setw(8) << point.time;
+    }
+    std::cout << "\n";
+    for (int i = 0; i < cluster.size(); i++) {
+        auto point = cluster.at(i);
+        std::cout << std::setw(8) << point.charge;
+    }
+    std::cout << "\n";
 }
 
 std::vector<nmx::data_point> convertToVector(nmx::cluster &cluster) {
@@ -66,12 +75,15 @@ int32_t findDescrepancy(std::vector<nmx::data_point> cluster, std::vector<nmx::d
 
     //std::cout << "plane size = " << plane.size() << ", cluster size = " << cluster.size() << std::endl;
 
+    int c_size = (int)cluster.size();
+    int p_size = (int)plane.size();
+
     int iter1 = 0;
 
     for (auto it1 = plane.begin(); it1 != plane.end(); ) {
-
-        //std::cout << "plane[" << iter1 << "] : ";
-
+/*
+        std::cout << "plane[" << iter1 << "] : ";
+*/
         nmx::data_point epoint = *it1;
 /*
         std::cout << "strip = " << epoint.strip << ", time = " << epoint.time << ", charge = " << epoint.charge
@@ -80,9 +92,9 @@ int32_t findDescrepancy(std::vector<nmx::data_point> cluster, std::vector<nmx::d
         int iter2 = 0;
 
         for (auto it2 = cluster.begin(); it2 != cluster.end(); ) {
-
-           // std::cout << "cluster[" << iter2 << "] : ";
-
+/*
+           std::cout << "cluster[" << iter2 << "] : ";
+*/
             nmx::data_point cpoint = *it2;
 /*
             std::cout << "strip = " << cpoint.strip << ", time = " << cpoint.time << ", charge = " << cpoint.charge
@@ -92,12 +104,12 @@ int32_t findDescrepancy(std::vector<nmx::data_point> cluster, std::vector<nmx::d
                 && (cpoint.time == epoint.time)
                 && (cpoint.charge == epoint.charge)) {
 
-                //std::cout << "MATCH !!!!\n";
+              //  std::cout << "MATCH !!!!\n";
 
                 plane.erase(it1);
                 cluster.erase(it2);
 
-                //std::cout << "plane size = " << plane.size() << ", cluster size = " << cluster.size() << std::endl;
+              //  std::cout << "plane size = " << plane.size() << ", cluster size = " << cluster.size() << std::endl;
 
                 it1--;
                 iter1--;
@@ -113,7 +125,13 @@ int32_t findDescrepancy(std::vector<nmx::data_point> cluster, std::vector<nmx::d
         iter1++;
     }
 
-    return cluster.size() - plane.size();
+    if (c_size - cluster.size() != p_size - plane.size()) {
+        std::cout << "Somethings wrong! Did not find the same number of points in cluster and plane\n";
+        std::cout << "cluster : " << c_size << " - " << cluster.size() << " = " << c_size - cluster.size() << std::endl;
+        std::cout << "plane   : " << p_size << " - " << plane.size() << " = " << p_size - plane.size() << std::endl;
+    }
+
+    return c_size - (c_size - (int)cluster.size());
 }
 
 void compareClusterToEvents(nmx::cluster cluster, std::vector<plane> &events) {
@@ -130,17 +148,16 @@ void compareClusterToEvents(nmx::cluster cluster, std::vector<plane> &events) {
     plane pbuf_orig = cl;
     plane pbuf_lost;
     plane pbuf_gained;
-
-    std::cout << "Orig size " << pbuf_orig.size() << std::endl;
-
+/*
+    std::cout << "Cluster size = " << pbuf_orig.size() << std::endl;
+*/
     for (auto it = events.begin(); it != events.end();) {
 
         plane plane = *it;
-
-
-
 /*
- *
+        std::cout << "Comparing to event with " << plane.size() << " points\n";
+*/
+/*
         std::cout << "Comparing : \n";
         printCluster(cl);
         std::cout << "To : \n";
@@ -154,6 +171,8 @@ void compareClusterToEvents(nmx::cluster cluster, std::vector<plane> &events) {
             events.erase(it);
             return;
         } else {
+
+            std::cout << "Descrepancy is " << descrepancy << std::endl;
 
             if (descrepancy < 0) {
                 if (std::abs(descrepancy) < min_lostpoints) {
@@ -175,8 +194,7 @@ void compareClusterToEvents(nmx::cluster cluster, std::vector<plane> &events) {
     }
 
 
-    std::cout << "Orig size " << pbuf_orig.size() << std::endl;
-
+//    std::cout << "Orig size " << pbuf_orig.size() << std::endl;
 
     std::cout << "Best match ";
 
@@ -200,7 +218,7 @@ int main() {
 
     uint32_t nspertimebin = 32;
     uint32_t maxbinsperevent = 30;
-    uint32_t maxtimeperevent = nspertimebin*maxbinsperevent*1.5;
+    uint32_t maxtimeperevent = nspertimebin*maxbinsperevent*2;
 
     Clusterer c;
 
@@ -212,81 +230,121 @@ int main() {
 
     SpecialDataReader reader;
 
-    event event = reader.ReadNextEvent();
+    std::vector<event> events;
 
-    std::cout << "IGH" << std::endl;
+    bool cont = true;
 
-    while (repeat < 1) {
+    while (cont) {
+
+        event ievent = reader.ReadNextEvent();
+
+        if ((ievent.at(0).size() == 0) && ievent.at(1).size() == 0)
+            cont = false;
+        else
+            events.push_back(ievent);
+    }
+
+    EventManager evman;
+    //evman.setClusterBuffer(c.getProducedClusters());
+
+    int nrepeats = 10;
+
+    int multiplier = 0;
+
+    std::cout << "Will repeat " << events.size() << " events " << nrepeats << " times.\n";
+
+    while (repeat < nrepeats) {
 
         std::cout << "*** Repeat # " << repeat << " ***\n";
 
-        //plane p;
+        for (int ievent = 0; ievent < /*1*/events.size(); ievent++) {
 
-        for (int iplane = 0; iplane < 2; iplane ++) {
+            event ev = events.at(ievent);
 
-            std::cout << "Plane " << iplane << std::endl;
+            for (int iplane = 0; iplane < 2; iplane++) {
 
-            plane xplane = (event.at(iplane));
+                //std::cout << "Plane " << iplane << std::endl;
 
-            for (int i = 0; i < xplane.size(); i++) {
+                plane xplane = (ev.at(iplane));
 
-                //xplane.at(i).strip -= 150;
-                xplane.at(i).time = xplane.at(i).time * nspertimebin + (2 * repeat + iplane) * maxtimeperevent;
-                //xplane.at(i).strip = xplane.at(i).strip - 150;
-            }
+                for (int i = 0; i < xplane.size(); i++) {
 
-            insertedEvents.push_back(xplane);
-
-            while (xplane.size() > 0) {
-
-                uint ipoint = rand() % xplane.size();
-
-                nmx::data_point point = xplane.at(ipoint);
-                xplane.erase(xplane.begin() + ipoint);
-
-                uint32_t strip = point.strip;
-                uint32_t time = point.time;
-                uint32_t charge = point.charge;
-
-
-
-                //p.push_back(point);
-
-                //std::cout << "Added data-point (" << strip << ", " << time << ", " << charge << ")\n";
-                c.addDataPoint(strip, time, charge);
-                //std::cout << "Buffer:\n";
-                //printBuffer(c.getMajorTimeBuffer(), c.getTimeOrderedBuffer());
-                //printMask(c.getClusterMask());
-
-                nmx::cluster &finalcluster = c.getFinalCluster();
-
-                if (finalcluster.npoints > 0) {
-
-                    std::cout << "Got a new cluster. Comparing to " << insertedEvents.size() << " stored events\n";
-
-                    compareClusterToEvents(finalcluster, insertedEvents);
-
-                    /*
-                    printCluster(convertToVector(finalcluster));
-
-                    std::cout << "Stored clusters :\n";
-
-                    for (int i = 0; i < insertedEvents.size(); i++) {
-                        std::cout << "# " << i << "\n";
-                        printCluster(insertedEvents.at(i));
-                    }
-*/
-
-                    finalcluster.npoints = 0;
+                    //xplane.at(i).strip -= 150;
+                    xplane.at(i).time = xplane.at(i).time * nspertimebin + multiplier * maxtimeperevent;
+                    //xplane.at(i).strip = xplane.at(i).strip - 150;
                 }
+
+                //printCluster(xplane);
+
+                evman.insertEvent(xplane);
+
+                insertedEvents.push_back(xplane);
+
+                while (xplane.size() > 0) {
+
+                    uint ipoint = rand() % xplane.size();
+
+                    nmx::data_point point = xplane.at(ipoint);
+                    xplane.erase(xplane.begin() + ipoint);
+
+                    uint32_t strip = point.strip;
+                    uint32_t time = point.time;
+                    uint32_t charge = point.charge;
+
+                    //p.push_back(point);
+                    //std::cout << "Added data-point (" << strip << ", " << time << ", " << charge << ")\n";
+                    c.addDataPoint(strip, time, charge);
+                    //std::cout << "Buffer:\n";
+                    //printBuffer(c.getMajorTimeBuffer(), c.getTimeOrderedBuffer());
+                    //printMask(c.getClusterMask());
+
+                    std::vector<nmx::cluster> &produced_clusters = c.getProducedClusters();
+
+                    if (produced_clusters.size() > 0)
+                        std::cout << "Received " << produced_clusters.size() << " clusters.\n";
+
+                    while (produced_clusters.size() > 0) {
+
+                        evman.compareToStored(produced_clusters);
+                        /*
+
+                        auto it = produced_clusters.begin();
+
+                        nmx::cluster produced_cluster = *it;
+*/
+                         /*
+                        std::cout << "Produced cluster contains " << produced_cluster.npoints << " points\n";
+*/
+/*
+                        std::cout << "Comparing cluster to " << insertedEvents.size() << " stored events\n";
+
+                        compareClusterToEvents(produced_cluster, insertedEvents);
+*/
+                        /*
+                        printCluster(convertToVector(finalcluster));
+
+                        std::cout << "Stored clusters :\n";
+
+                        for (int i = 0; i < insertedEvents.size(); i++) {
+                            std::cout << "# " << i << "\n";
+                            printCluster(insertedEvents.at(i));
+                        }
+                        */
+
+                        //produced_clusters.erase(it);
+
+                    }
+                }
+
+                multiplier++;
+                //insertedEvents.push_back(p);
             }
-
-            //insertedEvents.push_back(p);
-
         }
 
         repeat++;
     }
+
+    evman.printStats();
 
     return 0;
 }

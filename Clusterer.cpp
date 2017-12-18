@@ -556,6 +556,9 @@ uint Clusterer::checkMask(uint strip, int &lo_idx, int &hi_idx) {
 
 bool Clusterer::flushCluster(const int &boxid) {
 
+    nmx::cluster produced_cluster;
+    produced_cluster.npoints = 0;
+
     bool verbose = false;
 
     if (verbose) {
@@ -593,8 +596,8 @@ bool Clusterer::flushCluster(const int &boxid) {
             }
 
             if (point.charge != 0) {
-                m_final_cluster.data.at(m_final_cluster.npoints) = point;
-                m_final_cluster.npoints++;
+                produced_cluster.data.at(produced_cluster.npoints) = point;
+                produced_cluster.npoints++;
 
                 if (verbose)
                     std::cout << "Inserted strip\n";
@@ -603,6 +606,8 @@ bool Clusterer::flushCluster(const int &boxid) {
             point = {0, 0, 0};
         }
     }
+
+    m_produced_clusters.push_back(produced_cluster);
 
     m_boxes.releaseBox(boxid);
 
@@ -689,7 +694,7 @@ void Clusterer::reset() {
         m_cluster.at(i) = {0,0,0};
     }
 
-    m_final_cluster.npoints = 0;
+   // m_final_cluster.npoints = 0;
 }
 
 // This must go in final version

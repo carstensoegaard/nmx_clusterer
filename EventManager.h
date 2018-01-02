@@ -29,6 +29,7 @@ class EventManager {
 public:
 
     EventManager();
+    ~EventManager();
 
     void compareToStored(std::vector<nmx::cluster> &cluster_buffer);
 
@@ -57,7 +58,8 @@ private:
     void removeRepeatedStrips(EVMAN::event &remain,  EVMAN::event &stored);
     bool pointsMatch(const nmx::data_point &p1, const nmx::data_point &p2);
 
-    void flushClusters();
+    void flushOldestEvent();
+    void writeEventToFile(const EVMAN::cluster &cl);
 
     EVMAN::event convertToVector(nmx::cluster &cluster);
     void printEvent(const EVMAN::cluster &cl);

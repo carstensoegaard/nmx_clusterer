@@ -25,7 +25,7 @@ namespace nmx {
     const uint MAJOR_BITS  = 21; // "Flushing bits
 
     // Number of neighboring bits to consider for merging two clusters
-    const uint INCLUDE_N_NEIGHBOURS = 20;
+    const uint INCLUDE_N_NEIGHBOURS = 10;
 
     // Maximum length of a cluster.
     // Detector specific parameter.

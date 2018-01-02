@@ -14,7 +14,12 @@ EventManager::EventManager()
   m_ndiscarded_points(0),
   m_ndiscarted_events(0)
 {
+    m_ofile.open("NMX_clusterer_output.txt");
+}
 
+EventManager::~EventManager() {
+
+    m_ofile.close();
 }
 
 void EventManager::insertEvent(const EVMAN::event &ev) {
@@ -31,7 +36,7 @@ void EventManager::insertEvent(const EVMAN::event &ev) {
 
 void EventManager::compareToStored(std::vector<nmx::cluster> &cluster_buffer) {
 
-    bool verbose = false;
+    bool verbose = true;
 
     m_nclusters += cluster_buffer.size();
 
@@ -49,7 +54,11 @@ void EventManager::compareToStored(std::vector<nmx::cluster> &cluster_buffer) {
         nmx::cluster cl = cluster_buffer.at(icluster);
         std::vector<nmx::data_point> cluster = convertToVector(cl);
 
+        std::cout << "Finding best match ...\n";
+
         std::array<int, 2> best_match = compare(cluster);
+
+        std::cout << "Best match is " << best_match[1] << std::endl;
 
         EVMAN::cluster c;
         c.eventnumber = m_insertedEvents.at(best_match[1]).eventnumber;
@@ -61,11 +70,13 @@ void EventManager::compareToStored(std::vector<nmx::cluster> &cluster_buffer) {
             && (cluster.size() == m_insertedEvents.at(best_match[1]).data.size())) {
 
             std::cout << "Exact match found !!!\n";
+            m_nexact++;
+            m_insertedEvents.erase(m_insertedEvents.begin()+best_match[1]);
 
             continue;
         }
 
-        if (best_match[1] == 0) {
+        if (best_match[0] == 0) {
             std::cout << "No points matched any inserted events\n";
             std::cout << "Cluster :\n";
             printEvent(cluster);
@@ -75,13 +86,11 @@ void EventManager::compareToStored(std::vector<nmx::cluster> &cluster_buffer) {
             throw 1;
         }
 
-
-
         auto cluster_buf = cluster;
-        auto inserted_buf = m_insertedEvents.at(best_match[2]);
+        auto inserted_buf = m_insertedEvents.at(best_match[1]);
 
-        removeMatchingPoints(cluster, m_insertedEvents.at(best_match[2]).data);
-
+        removeMatchingPoints(cluster, m_insertedEvents.at(best_match[1]).data);
+/*
         if (cluster.size() != 0) {
             std::cout << "Cluster has " << cluster.size() << " remaining points\n";
             std::cout << "Cluster :\n";
@@ -91,18 +100,18 @@ void EventManager::compareToStored(std::vector<nmx::cluster> &cluster_buffer) {
 
             throw 2;
         }
-
+*/
         if (verbose) {
-            std::cout << best_match[1] << " points matched, " << m_insertedEvents.at(best_match[2]).data.size()
+            std::cout << best_match[0] << " points matched, " << m_insertedEvents.at(best_match[1]).data.size()
                       << " remain\n";
             std::cout << "Cluster :\n";
             printEvent(cluster_buf);
             std::cout << "Event :\n";
             printEvent(inserted_buf);
             std::cout << "Remaining : \n";
-            printEvent(m_insertedEvents.at(best_match[2]));
+            printEvent(m_insertedEvents.at(best_match[1]));
         }
-
+/*
         std::cout << "Removing repeated strips\n";
         removeRepeatedStrips(m_insertedEvents.at(best_match[2]).data, inserted_buf.data);
         if (m_insertedEvents.at(best_match[2]).data.size() == 0) {
@@ -113,16 +122,17 @@ void EventManager::compareToStored(std::vector<nmx::cluster> &cluster_buffer) {
             std::cout << "Remaining : \n";
             printEvent(m_insertedEvents.at(best_match[2]));
         }
+*/
+
     }
 
     cluster_buffer.clear();
-/*
+
     if (m_insertedEvents.size() > 20) {
         m_ndiscarted_events++;
-        m_ndiscarded_points += m_insertedEvents.at(0).size();
-        m_insertedEvents.erase(m_insertedEvents.begin());
+        m_ndiscarded_points += m_insertedEvents.at(0).data.size();
+        flushOldestEvent();
     }
-*/
 }
 
 std::array<int, 2> EventManager::compare(std::vector<nmx::data_point> &cluster) {
@@ -144,10 +154,10 @@ std::array<int, 2> EventManager::compare(std::vector<nmx::data_point> &cluster) 
         int nmatching = numberOfMatchingPoints(cluster, inserted.data);
 
         //std::cout << nmatching << " matching points found\n";
-        if (nmatching > ret[1]) {
+        if (nmatching > ret[0]) {
 
-            ret[1] = nmatching;
-            ret[2] = ievent;
+            ret[0] = nmatching;
+            ret[1] = ievent;
         }
     }
 
@@ -192,6 +202,11 @@ void EventManager::removeRepeatedStrips(std::vector<nmx::data_point> &remain, st
 
 void EventManager::removeMatchingPoints(std::vector<nmx::data_point> &cluster, std::vector<nmx::data_point> &stored) {
 
+    bool verbose = true;
+
+    if (verbose)
+        std::cout << "Removing matching points ...\n";
+
     for (auto it1 = cluster.begin(); it1 != cluster.end();) {
 
         bool foundmatch = false;
@@ -212,46 +227,58 @@ void EventManager::removeMatchingPoints(std::vector<nmx::data_point> &cluster, s
         if (!foundmatch)
             it1++;
     }
+
+    if (verbose)
+        std::cout << "Matching points removed!\n";
 }
 
 int EventManager::numberOfMatchingPoints(const std::vector<nmx::data_point> &cluster,
                                          const std::vector<nmx::data_point> &event) {
 
-    //std::cout << "plane size = " << plane.size() << ", cluster size = " << cluster.size() << std::endl;
+    bool verbose = false;
+
+    if (verbose)
+        std::cout << "plane size = " << event.size() << ", cluster size = " << cluster.size() << std::endl;
 
     int iter1 = 0;
 
     int nmatchingpoints = 0;
 
         for (auto it1 = event.begin(); it1 != event.end(); ) {
-/*
-        std::cout << "plane[" << iter1 << "] : ";
-*/
+
+            if (verbose)
+                std::cout << "event[" << iter1 << "] : ";
+
             nmx::data_point epoint = *it1;
-/*
-        std::cout << "strip = " << epoint.strip << ", time = " << epoint.time << ", charge = " << epoint.charge
-                  << std::endl;
-*/
+
+            if (verbose)
+                std::cout << "strip = " << epoint.strip << ", time = " << epoint.time << ", charge = "
+                          << epoint.charge << std::endl;
+
             int iter2 = 0;
 
             for (auto it2 = cluster.begin(); it2 != cluster.end(); ) {
-/*
-           std::cout << "cluster[" << iter2 << "] : ";
-*/
+
+                if (verbose)
+                    std::cout << "cluster[" << iter2 << "] : ";
+
                 nmx::data_point cpoint = *it2;
-/*
-            std::cout << "strip = " << cpoint.strip << ", time = " << cpoint.time << ", charge = " << cpoint.charge
-                      << std::endl;
-*/
+
+                if (verbose)
+                    std::cout << "strip = " << cpoint.strip << ", time = " << cpoint.time << ", charge = " << cpoint.charge
+                              << std::endl;
+
                 if (pointsMatch(epoint, cpoint)) {
 
                     nmatchingpoints++;
-                    //  std::cout << "MATCH !!!!\n";
+
+                    if (verbose)
+                        std::cout << "MATCH !!!!\n";
 
                     //plane.erase(it1);
                     //cluster.erase(it2);
 
-                    //  std::cout << "plane size = " << plane.size() << ", cluster size = " << cluster.size() << std::endl;
+                    //std::cout << "plane size = " << plane.size() << ", cluster size = " << cluster.size() << std::endl;
 
                     //it1--;
                     //iter1--;
@@ -305,18 +332,49 @@ void EventManager::printStats() {
 
 }
 
-void EventManager::flushClusters() {
+void EventManager::flushOldestEvent() {
 
-    cluster
+    uint eventno = m_eventBuffer.at(0).eventnumber;
 
+    m_ofile << "Event # " << eventno << "\n";
+
+    writeEventToFile(m_eventBuffer.at(0));
+
+    uint cl_cnt = 0;
+
+    for (auto &val : m_produced_clusters) {
+
+        if (val.eventnumber == eventno) {
+
+//            m_ofile << "Cluster # " << cl_cnt << "\n";
+            writeEventToFile(val);
+        }
+    }
+
+    m_insertedEvents.erase(m_insertedEvents.begin());
+    m_eventBuffer.erase(m_eventBuffer.begin());
 }
 
 
-void EventManager::printEvent(const cluster &cl) {
+inline void EventManager::writeEventToFile(const EVMAN::cluster &cl) {
+
+    const EVMAN::event &cl_data = cl.data;
+
+    for(auto const& val: cl_data)
+        m_ofile << val.strip << " ";
+    m_ofile << "\n";
+    for(auto const& val: cl_data)
+        m_ofile << val.time << " ";
+    m_ofile << "\n";
+    for(auto const& val: cl_data)
+        m_ofile << val.charge << " ";
+    m_ofile << "\n";
+}
+
+void EventManager::printEvent(const EVMAN::cluster &cl) {
 
     std::cout << "Event # " << cl.eventnumber << std::endl;
-
-    ins_event &ev = cl.data;
+    const EVMAN::event &ev = cl.data;
 
     printEvent(ev);
 }
@@ -324,7 +382,6 @@ void EventManager::printEvent(const cluster &cl) {
 void EventManager::printEvent(const std::vector<nmx::data_point> &ev) {
 
     for (auto it = ev.begin(); it != ev.end(); it++) {
-        //nmx::data_point p = *it;
         std::cout << std::setw(8) << (*it).strip;
     }
     std::cout << "\n";

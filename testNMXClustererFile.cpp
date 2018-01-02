@@ -247,7 +247,7 @@ int main() {
     EventManager evman;
     //evman.setClusterBuffer(c.getProducedClusters());
 
-    int nrepeats = 10;
+    int nrepeats = 3;
 
     int multiplier = 0;
 

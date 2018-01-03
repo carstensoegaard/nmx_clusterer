@@ -26,8 +26,7 @@ Clusterer::Clusterer()
         throw 1;
     }
 
-    std::cout << "Initialising NMX-clusterer with the following parameters:\n";
-    std::cout << "\n";
+    std::cout << "\n\nInitialising NMX-clusterer with the following parameters:\n\n";
     std::cout << "Number of strips :         " << std::setw(10) << nmx::STRIPS_PER_PLANE << std::endl;
     std::cout << "Bits to ignore :           " << std::setw(10) << nmx::IGNORE_BITS << std::endl;
     std::cout << "Minor bits :               " << std::setw(10) << nmx::MINOR_BITS << std::endl;
@@ -64,10 +63,7 @@ bool Clusterer::addDataPoint(const nmx::data_point &point) {
 
         return false;
     }
-/*
-    if (point.strip == 162)
-        verbose = true;
-*/
+
     if (verbose) {
         printTimeOrderedBuffer();
         printMask();
@@ -91,19 +87,8 @@ bool Clusterer::addDataPoint(const nmx::data_point &point) {
             if (verbose)
                 std::cout << "Case 1\n";
 
-            for (uint idx = m_i1+1; idx <= nmx::MINOR_BITMASK; idx++) {
-                if (verbose)
-                    std::cout << "Transfering buffer " << idx << std::endl;
-                transfer(m_time_ordered_buffer.at(idx));
-                m_majortime_buffer.at(idx) = majorTime - 1;
-            }
-
-            for (uint idx = 0; idx <= std::min(m_i1, minorTime); idx++) {
-                if (verbose)
-                    std::cout << "Transfering buffer " << idx << std::endl;
-                transfer(m_time_ordered_buffer.at(idx));
-                m_majortime_buffer.at(idx) = majorTime;
-            }
+            flushBuffer(m_i1+1, nmx::MINOR_BITMASK, majorTime-1);
+            flushBuffer(0, std::min(m_i1, minorTime), majorTime);
 
             m_i1 = minorTime;
             addToBuffer(point, minorTime);
@@ -113,19 +98,8 @@ bool Clusterer::addDataPoint(const nmx::data_point &point) {
             if (verbose)
                 std::cout << "Case 2\n";
 
-            for (uint idx = m_i1+1; idx <= nmx::MINOR_BITMASK; idx++) {
-                if (verbose)
-                    std::cout << "Transfering buffer " << idx << std::endl;
-                transfer(m_time_ordered_buffer.at(idx));
-                m_majortime_buffer.at(idx) = majorTime - 1;
-            }
-
-            for (uint idx = 0; idx <= m_i1; idx++) {
-                if (verbose)
-                    std::cout << "Transfering buffer " << idx << std::endl;
-                transfer(m_time_ordered_buffer.at(idx));
-                m_majortime_buffer.at(idx) = majorTime;
-            }
+            flushBuffer(m_i1+1, nmx::MINOR_BITMASK, majorTime-1);
+            flushBuffer(0, m_i1, majorTime);
 
             m_i1 = minorTime;
             addToBuffer(point, minorTime);
@@ -140,12 +114,7 @@ bool Clusterer::addDataPoint(const nmx::data_point &point) {
                 if (verbose)
                     std::cout << "Case 3\n";
 
-                for (uint idx = m_i1 + 1; idx <= minorTime; idx++) {
-                    if (verbose)
-                        std::cout << "Transfering buffer " << idx << std::endl;
-                    transfer(m_time_ordered_buffer.at(idx));
-                    m_majortime_buffer.at(idx) = majorTime;
-                }
+                flushBuffer(m_i1+1, minorTime, majorTime);
 
                 m_i1 = minorTime;
                 addToBuffer(point, minorTime);
@@ -203,6 +172,18 @@ inline void Clusterer::addToBuffer(const nmx::data_point &point, const uint &min
     m_time_ordered_buffer.at(minorTime).npoints++;
 
 //    std::cout << "Done adding to buffer!\n";
+}
+
+inline void Clusterer::flushBuffer(uint lo_idx, uint hi_idx, uint32_t buffertime) {
+
+    bool verbose = false;
+
+    for (uint idx = lo_idx; idx <= hi_idx; idx++) {
+        if (verbose)
+            std::cout << "Transfering buffer " << idx << std::endl;
+        transfer(m_time_ordered_buffer.at(idx));
+        m_majortime_buffer.at(idx) = buffertime;
+    }
 }
 
 bool Clusterer::transfer(nmx::buffer &buf) {
@@ -614,6 +595,19 @@ bool Clusterer::flushCluster(const int &boxid) {
     if (verbose) {
         std::cout << "Done flushing\n";
         printMask();
+    }
+}
+
+void Clusterer::endRun() {
+
+    flushBuffer(m_i1+1, nmx::MINOR_BITMASK, nmx::MINOR_BITMASK);
+    flushBuffer(0, m_i1, nmx::MINOR_BITMASK);
+
+    for (uint i = 0; i < nmx::STRIPS_PER_PLANE; i++) {
+
+        if (m_mask.at(i) > 0)
+
+            flushCluster(m_mask.at(i));
     }
 }
 

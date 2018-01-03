@@ -31,9 +31,9 @@ public:
     EventManager();
     ~EventManager();
 
-    void compareToStored(std::vector<nmx::cluster> &cluster_buffer);
-
     void insertEvent(const EVMAN::event &ev);
+    void compareToStored(std::vector<nmx::cluster> &cluster_buffer);
+    void flushBuffer();
 
     void printStats();
 
@@ -55,7 +55,6 @@ private:
 
     int numberOfMatchingPoints(const EVMAN::event &cluster, const EVMAN::event &event);
     void removeMatchingPoints(EVMAN::event &cluster, EVMAN::event &stored);
-    void removeRepeatedStrips(EVMAN::event &remain,  EVMAN::event &stored);
     bool pointsMatch(const nmx::data_point &p1, const nmx::data_point &p2);
 
     void flushOldestEvent();

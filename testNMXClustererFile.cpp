@@ -247,11 +247,11 @@ int main() {
     EventManager evman;
     //evman.setClusterBuffer(c.getProducedClusters());
 
-    int nrepeats = 3;
+    int nrepeats = 1;
 
     int multiplier = 0;
 
-    std::cout << "Will repeat " << events.size() << " events " << nrepeats << " times.\n";
+    std::cout << "\nWill repeat " << events.size() << " events " << nrepeats << " times.\n";
 
     while (repeat < nrepeats) {
 
@@ -299,10 +299,10 @@ int main() {
                     //printMask(c.getClusterMask());
 
                     std::vector<nmx::cluster> &produced_clusters = c.getProducedClusters();
-
+/*
                     if (produced_clusters.size() > 0)
                         std::cout << "Received " << produced_clusters.size() << " clusters.\n";
-
+*/
                     while (produced_clusters.size() > 0) {
 
                         evman.compareToStored(produced_clusters);
@@ -341,8 +341,17 @@ int main() {
             }
         }
 
+        std::vector<nmx::cluster> &produced_clusters = c.getProducedClusters();
+
+        while (produced_clusters.size() > 0) {
+
+            evman.compareToStored(produced_clusters);
+        }
+
         repeat++;
     }
+
+    evman.flushBuffer();
 
     evman.printStats();
 

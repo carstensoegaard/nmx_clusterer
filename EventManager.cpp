@@ -36,11 +36,11 @@ void EventManager::insertEvent(const EVMAN::event &ev) {
 
 void EventManager::compareToStored(std::vector<nmx::cluster> &cluster_buffer) {
 
-    bool verbose = true;
+    bool verbose = false;
 
     m_nclusters += cluster_buffer.size();
 
-    if (1/*verbose*/)
+    if (verbose)
         std::cout << "Comparing " << cluster_buffer.size() << " clusters to " << m_insertedEvents.size()
                   << " stored events\n";
 
@@ -54,11 +54,13 @@ void EventManager::compareToStored(std::vector<nmx::cluster> &cluster_buffer) {
         nmx::cluster cl = cluster_buffer.at(icluster);
         std::vector<nmx::data_point> cluster = convertToVector(cl);
 
-        std::cout << "Finding best match ...\n";
+        if (verbose)
+            std::cout << "Finding best match ...\n";
 
         std::array<int, 2> best_match = compare(cluster);
 
-        std::cout << "Best match is " << best_match[1] << std::endl;
+        if (verbose)
+            std::cout << "Best match is " << best_match[1] << std::endl;
 
         EVMAN::cluster c;
         c.eventnumber = m_insertedEvents.at(best_match[1]).eventnumber;
@@ -69,7 +71,9 @@ void EventManager::compareToStored(std::vector<nmx::cluster> &cluster_buffer) {
         if ((cluster.size() == best_match[0])
             && (cluster.size() == m_insertedEvents.at(best_match[1]).data.size())) {
 
-            std::cout << "Exact match found !!!\n";
+            if (verbose)
+                std::cout << "Exact match found !!!\n";
+
             m_nexact++;
             m_insertedEvents.erase(m_insertedEvents.begin()+best_match[1]);
 
@@ -111,18 +115,6 @@ void EventManager::compareToStored(std::vector<nmx::cluster> &cluster_buffer) {
             std::cout << "Remaining : \n";
             printEvent(m_insertedEvents.at(best_match[1]));
         }
-/*
-        std::cout << "Removing repeated strips\n";
-        removeRepeatedStrips(m_insertedEvents.at(best_match[2]).data, inserted_buf.data);
-        if (m_insertedEvents.at(best_match[2]).data.size() == 0) {
-            std::cout << "All points accounted for\n";
-            m_insertedEvents.erase(m_insertedEvents.begin()+best_match[2]);
-        } else {
-            std::cout << m_insertedEvents.at(best_match[2]).data.size() << " points still remain\n";
-            std::cout << "Remaining : \n";
-            printEvent(m_insertedEvents.at(best_match[2]));
-        }
-*/
 
     }
 
@@ -134,6 +126,29 @@ void EventManager::compareToStored(std::vector<nmx::cluster> &cluster_buffer) {
         flushOldestEvent();
     }
 }
+
+void EventManager::flushBuffer() {
+
+    while (m_insertedEvents.size() > 0) {
+        m_ndiscarted_events++;
+        m_ndiscarded_points += m_insertedEvents.at(0).data.size();
+        flushOldestEvent();
+    }
+}
+
+void EventManager::printStats() {
+
+    std::cout << "\n";
+    std::cout << "Number of inserted events                       : " << std::setw(10) << m_nevents << std::endl;
+    std::cout << "Number of produced clusters                     : " << std::setw(10) << m_nclusters << std::endl;
+    std::cout << "Number of exactly produced clusters             : " << std::setw(10) << m_nexact << std::endl;
+    std::cout << "Number of discarded event fragments             : " << std::setw(10) << m_ndiscarted_events << std::endl;
+    std::cout << "Numner og discarded points                      : " << std::setw(10) << m_ndiscarded_points << std::endl;
+    std::cout << "Average number of discarded points per fragment : " << std::setw(10)
+              << double(m_ndiscarded_points)/double(m_ndiscarted_events) << std::endl;
+
+}
+
 
 std::array<int, 2> EventManager::compare(std::vector<nmx::data_point> &cluster) {
 
@@ -164,45 +179,10 @@ std::array<int, 2> EventManager::compare(std::vector<nmx::data_point> &cluster) 
     return ret;
 }
 
-void EventManager::removeRepeatedStrips(std::vector<nmx::data_point> &remain, std::vector<nmx::data_point> &stored) {
-
-    bool verbose = false;
-
-    for (auto ipoint = remain.begin(); ipoint != remain.end();) {
-
-        int cnt = 0;
-        nmx::data_point point1 = *ipoint;
-
-        if (verbose)
-            std::cout << "Checking for strip " << point1.strip << std::endl;
-
-        for (int iipoint = 0; iipoint < stored.size(); iipoint++) {
-
-            nmx::data_point point2 = stored.at(iipoint);
-
-            if (verbose)
-                std::cout << std::setw(5) << point2.strip;
-
-            if (point1.strip == point2.strip) {
-
-                cnt++;
-                if (verbose)
-                    std::cout << " Found strip " << cnt << " times ";
-            }
-        }
-
-        if (cnt > 1) {
-            if (verbose)
-                std::cout << " Strip " << point1.strip << " is repeated - removing\n";
-            remain.erase(ipoint);
-        } else
-            ipoint++;
-    }
-}
 
 void EventManager::removeMatchingPoints(std::vector<nmx::data_point> &cluster, std::vector<nmx::data_point> &stored) {
 
-    bool verbose = true;
+    bool verbose = false;
 
     if (verbose)
         std::cout << "Removing matching points ...\n";
@@ -275,14 +255,6 @@ int EventManager::numberOfMatchingPoints(const std::vector<nmx::data_point> &clu
                     if (verbose)
                         std::cout << "MATCH !!!!\n";
 
-                    //plane.erase(it1);
-                    //cluster.erase(it2);
-
-                    //std::cout << "plane size = " << plane.size() << ", cluster size = " << cluster.size() << std::endl;
-
-                    //it1--;
-                    //iter1--;
-
                     break;
                 }
 
@@ -293,13 +265,7 @@ int EventManager::numberOfMatchingPoints(const std::vector<nmx::data_point> &clu
             it1++;
             iter1++;
         }
-/*
-    if (c_size - cluster.size() != p_size - plane.size()) {
-        std::cout << "Somethings wrong! Did not find the same number of points in cluster and plane\n";
-        std::cout << "cluster : " << c_size << " - " << cluster.size() << " = " << c_size - cluster.size() << std::endl;
-            std::cout << "plane   : " << p_size << " - " << plane.size() << " = " << p_size - plane.size() << std::endl;
-    }
-  */
+
     return nmatchingpoints;
 }
 
@@ -317,19 +283,6 @@ std::vector<nmx::data_point> EventManager::convertToVector(nmx::cluster &cluster
     std::vector<nmx::data_point> cl(cluster.data.begin(), cluster.data.begin()+cluster.npoints);
 
     return cl;
-}
-
-void EventManager::printStats() {
-
-    std::cout << "\n";
-    std::cout << "Number of inserted events                       : " << std::setw(10) << m_nevents << std::endl;
-    std::cout << "Number of produced clusters                     : " << std::setw(10) << m_nclusters << std::endl;
-    std::cout << "Number of exactly produced clusters             : " << std::setw(10) << m_nexact << std::endl;
-    std::cout << "Number of discarded events fragments            : " << std::setw(10) << m_ndiscarted_events << std::endl;
-    std::cout << "Numner og discarded points                      : " << std::setw(10) << m_ndiscarded_points << std::endl;
-    std::cout << "Average number of discarded points per fragment : " << std::setw(10)
-              << double(m_ndiscarded_points)/double(m_ndiscarted_events) << std::endl;
-
 }
 
 void EventManager::flushOldestEvent() {

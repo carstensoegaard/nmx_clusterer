@@ -30,14 +30,14 @@ event SpecialDataReader::ReadNextEvent() {
 
             if (!inevent) {
 
-                std::cout << "Processing event # " << ievent << std::endl;
+                //std::cout << "Processing event # " << ievent << std::endl;
 
                 inevent = true;
                 continue;
 
             } else {
 
-                std::cout << "Finished event\n";
+                //std::cout << "Finished event\n";
 
                 inevent = false;
                 m_ifile.seekg(oldpos);

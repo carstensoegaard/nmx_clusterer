@@ -21,11 +21,11 @@ namespace nmx {
     // 2) "Middle" (minor) bits - used for sorting
     // 3) Higest (major) bits - used for flushing sorted data-points
     const uint IGNORE_BITS =  5; // Ignored bits
-    const uint MINOR_BITS  =  6; // Sorting bits
-    const uint MAJOR_BITS  = 21; // "Flushing bits
+    const uint MINOR_BITS  =  7; // Sorting bits
+    const uint MAJOR_BITS  = 20; // "Flushing bits
 
     // Number of neighboring bits to consider for merging two clusters
-    const uint INCLUDE_N_NEIGHBOURS = 10;
+    const uint INCLUDE_N_NEIGHBOURS = 5;
 
     // Maximum length of a cluster.
     // Detector specific parameter.

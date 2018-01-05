@@ -75,7 +75,8 @@ void EventManager::compareToStored(std::vector<nmx::cluster> &cluster_buffer) {
                 std::cout << "Exact match found !!!\n";
 
             m_nexact++;
-            m_insertedEvents.erase(m_insertedEvents.begin()+best_match[1]);
+            flushEvent(best_match[1]);
+            //m_insertedEvents.erase(m_insertedEvents.begin()+best_match[1]);
 
             continue;
         }
@@ -129,10 +130,18 @@ void EventManager::compareToStored(std::vector<nmx::cluster> &cluster_buffer) {
 
 void EventManager::flushBuffer() {
 
+    bool verbose = false;
+
+    if (verbose)
+        std::cout << "Flushing buffer with " << m_insertedEvents.size() << " events :\n";
+
     while (m_insertedEvents.size() > 0) {
         m_ndiscarted_events++;
         m_ndiscarded_points += m_insertedEvents.at(0).data.size();
         flushOldestEvent();
+
+        if (verbose)
+            std::cout << m_insertedEvents.size() << " events remain!\n";
     }
 }
 
@@ -285,9 +294,36 @@ std::vector<nmx::data_point> EventManager::convertToVector(nmx::cluster &cluster
     return cl;
 }
 
+void EventManager::flushEvent(uint idx) {
+
+    auto event = m_eventBuffer.at(idx);
+
+    uint eventno = event.eventnumber;
+
+    //std::cout << "Event # " << eventno << "\n";
+
+    m_ofile << "Event # " << eventno << "\n";
+
+    writeEventToFile(event);
+
+    for (auto &cluster : m_produced_clusters) {
+
+        if (cluster.eventnumber == eventno)
+            writeEventToFile(cluster);
+    }
+
+    m_insertedEvents.erase(m_insertedEvents.begin()+idx);
+    m_eventBuffer.erase(m_eventBuffer.begin()+idx);
+}
+
 void EventManager::flushOldestEvent() {
 
+    flushEvent(0);
+
+    /*
     uint eventno = m_eventBuffer.at(0).eventnumber;
+
+    std::cout << "Event # " << eventno << "\n";
 
     m_ofile << "Event # " << eventno << "\n";
 
@@ -306,6 +342,7 @@ void EventManager::flushOldestEvent() {
 
     m_insertedEvents.erase(m_insertedEvents.begin());
     m_eventBuffer.erase(m_eventBuffer.begin());
+     */
 }
 
 

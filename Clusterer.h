@@ -26,7 +26,6 @@ public:
 private:
 
     uint m_i1;
-    bool m_firstevent;
 
     BoxAdministration m_boxes;
 
@@ -48,18 +47,22 @@ private:
     bool newCluster(nmx::data_point &point);
     bool insertInCluster(nmx::data_point &point);
     bool mergeAndInsert(uint32_t lo_idx, uint32_t hi_idx, nmx::data_point &point);
-    bool flushCluster(const int &boxid);
+    bool flushCluster(const int boxid);
 
     uint getLoBound(int strip);
     uint getHiBound(int strip);
 
-    //void emptyBuffer();
-
     void reset();
 
-    // Helper functions - must be removed before release
+    void checkBitSum();
+    void printInitialization();
 
 public:
+
+
+    // Public helper functions
+    // - intended for debugging only
+    // - not intended for release version
 
     uint getI1() { return m_i1; }
 
@@ -67,7 +70,6 @@ public:
     nmx::col_array getClusterMask() { return m_mask; }
     nmx::row_array getMajorTimeBuffer() { return m_majortime_buffer; }
     nmx::cluster_data getCluster() { return m_cluster; }
-
 
     // This must go in final version
     void printMask();

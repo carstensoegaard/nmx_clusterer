@@ -10,37 +10,11 @@
 #include "Clusterer.h"
 
 Clusterer::Clusterer()
-    : m_i1(nmx::MINOR_BITMASK),
-      m_firstevent(true)
+    : m_i1(nmx::MINOR_BITMASK)
 {
-    if (nmx::IGNORE_BITS + nmx::MINOR_BITS + nmx::MAJOR_BITS != 32) {
-        std::cout << std::setfill('*') << std::setw(40) << "*" << std::endl;
-        std::cout << std::setfill('*') << std::setw(40) << "*" << std::endl;
-        std::cout << "*" << std::setfill(' ') << std::setw(38) << " " << "*\n";
-        std::cout << "*" << std::setw(4) << " " << "Sum of NBITSx does not equal 32" << std::setw(3) << " " << "*\n";
-        std::cout << "*" << std::setw(2) << " " << "Cluster can not run - must be fixed" << std::setw(1) << " " << "*\n";
-        std::cout << "*" << std::setfill(' ') << std::setw(38) << " " << "*\n";
-        std::cout << std::setfill('*') << std::setw(40) << "*" << std::endl;
-        std::cout << std::setfill('*') << std::setw(40) << "*" << std::endl;
 
-        throw 1;
-    }
-
-    std::cout << "\n\nInitialising NMX-clusterer with the following parameters:\n\n";
-    std::cout << "Number of strips :         " << std::setw(10) << nmx::STRIPS_PER_PLANE << std::endl;
-    std::cout << "Bits to ignore :           " << std::setw(10) << nmx::IGNORE_BITS << std::endl;
-    std::cout << "Minor bits :               " << std::setw(10) << nmx::MINOR_BITS << std::endl;
-    std::cout << "Major bits :               " << std::setw(10) << nmx::MAJOR_BITS << std::endl;
-    std::cout << "Neighbours to include :    " << std::setw(10) << nmx::INCLUDE_N_NEIGHBOURS << std::endl;
-    std::cout << "Maximum time for cluster : " << std::setw(10) << nmx::MAX_CLUSTER_TIME << std::endl;
-    std::cout << "Number of boxes :          " << std::setw(10) << nmx::NBOXES << std::endl;
-    std::cout << "\n";
-    std::cout << "Max IGNORE :               " << std::setw(10) << nmx::MAX_IGNORE << std::endl;
-    std::cout << "Max MINOR :                " << std::setw(10) << nmx::MAX_MINOR << std::endl;
-    std::cout << "Max MAJOR :                " << std::setw(10) << nmx::MAX_MAJOR << std::endl;
-    std::cout << "IGNORE bit-mask :          " << std::setw(10) << nmx::IGNORE_BITMASK << std::endl;
-    std::cout << "MINOR bit-mask :           " << std::setw(10) << nmx::MINOR_BITMASK << std::endl;
-    std::cout << "MAJOR bit-mask :           " << std::setw(10) << nmx::MAJOR_BITMASK << std::endl;
+    checkBitSum();
+    printInitialization();
 
     reset();
 }
@@ -144,34 +118,22 @@ bool Clusterer::addDataPoint(const nmx::data_point &point) {
         printMask();
         printClusterBuffer();
     }
-
 }
 
 inline void Clusterer::addToBuffer(const nmx::data_point &point, const uint &minorTime) {
 
-//    std::cout << "Adding to buffer " << minorTime << std::endl;
-
-    if (point.strip >= nmx::STRIPS_PER_PLANE) {
-        std::cerr << "<addToBuffer> Strip # " << point.strip << " is larger than " << nmx::STRIPS_PER_PLANE - 1
-                  << std::endl;
-        std::cerr << "Point will not be added to the buffer!\n";
-
-        return;
-    }
-
-    if (minorTime >= nmx::MAX_MINOR) {
-        std::cerr << "<addToBuffer> Minor-time " << minorTime << " is larger than " << nmx::MAX_MINOR-1 << std::endl;
-        std::cerr << "Point will not be added to the buffer!\n";
-
+    if ((point.strip >= nmx::STRIPS_PER_PLANE) || (minorTime >= nmx::MAX_MINOR)) {
+        std::cerr << "<addToBuffer> Invalid data:\n";
+        std::cerr << "              Strip = " << point.strip << ", max strip = " << nmx::STRIPS_PER_PLANE-1 << "\n";
+        std::cerr << "              Minor-time = " << minorTime << " max minor = " << nmx::MAX_MINOR-1 << "\n";
+        std::cerr << " *** Point will not be added to the buffer! ***\n";
         return;
     }
 
     nmx::buffer &buf = m_time_ordered_buffer.at(minorTime);
 
-    buf.data.at(m_time_ordered_buffer.at(minorTime).npoints) = point;
-    m_time_ordered_buffer.at(minorTime).npoints++;
-
-//    std::cout << "Done adding to buffer!\n";
+    buf.data.at(buf.npoints) = point;
+    buf.npoints++;
 }
 
 inline void Clusterer::flushBuffer(uint lo_idx, uint hi_idx, uint32_t buffertime) {
@@ -535,7 +497,7 @@ uint Clusterer::checkMask(uint strip, int &lo_idx, int &hi_idx) {
     return 0;
 }
 
-bool Clusterer::flushCluster(const int &boxid) {
+bool Clusterer::flushCluster(const int boxid) {
 
     nmx::cluster produced_cluster;
     produced_cluster.npoints = 0;
@@ -549,8 +511,10 @@ bool Clusterer::flushCluster(const int &boxid) {
 
     nmx::box box = m_boxes.getBox(boxid);
 
-    if (verbose)
+    if (verbose) {
+        std::cout << "\nBox # " << boxid << ":\n";
         printBox(box);
+    }
 
     uint lo = getLoBound(box.min_strip);
     uint hi = getHiBound(box.max_strip);
@@ -590,7 +554,13 @@ bool Clusterer::flushCluster(const int &boxid) {
 
     m_produced_clusters.push_back(produced_cluster);
 
+    if (verbose)
+        std::cout << "Realeasing box # " << boxid;
+
     m_boxes.releaseBox(boxid);
+
+    if (verbose)
+        std::cout << " - box released!\n";
 
     if (verbose) {
         std::cout << "Done flushing\n";
@@ -600,13 +570,25 @@ bool Clusterer::flushCluster(const int &boxid) {
 
 void Clusterer::endRun() {
 
-    flushBuffer(m_i1+1, nmx::MINOR_BITMASK, nmx::MINOR_BITMASK);
-    flushBuffer(0, m_i1, nmx::MINOR_BITMASK);
+    bool verbose = false;
+
+    if (verbose)
+        std::cout << "END of run - flushing time-ordered buffer ...";
+
+    uint buffer_max = nmx::MINOR_BITMASK;
+
+    flushBuffer(m_i1+1, buffer_max, buffer_max);
+    flushBuffer(     0,       m_i1, buffer_max);
+
+    if (verbose)
+        std::cout << " Done!\n";
 
     for (uint i = 0; i < nmx::STRIPS_PER_PLANE; i++) {
 
-        if (m_mask.at(i) > 0)
+        if (verbose)
+            std::cout << "Mask.at(" << i << ")=" << m_mask.at(i) << std::endl;
 
+        if (m_mask.at(i) > 0)
             flushCluster(m_mask.at(i));
     }
 }
@@ -784,4 +766,39 @@ void Clusterer::printTimeOrderedBuffer() {
         }
         std::cout << "\n";
     }
+}
+
+void Clusterer::checkBitSum() {
+
+    if (nmx::IGNORE_BITS + nmx::MINOR_BITS + nmx::MAJOR_BITS != 32) {
+        std::cout << std::setfill('*') << std::setw(40) << "*" << std::endl;
+        std::cout << std::setfill('*') << std::setw(40) << "*" << std::endl;
+        std::cout << "*" << std::setfill(' ') << std::setw(38) << " " << "*\n";
+        std::cout << "*" << std::setw(4) << " " << "Sum of NBITSx does not equal 32" << std::setw(3) << " " << "*\n";
+        std::cout << "*" << std::setw(2) << " " << "Cluster can not run - must be fixed" << std::setw(1) << " " << "*\n";
+        std::cout << "*" << std::setfill(' ') << std::setw(38) << " " << "*\n";
+        std::cout << std::setfill('*') << std::setw(40) << "*" << std::endl;
+        std::cout << std::setfill('*') << std::setw(40) << "*" << std::endl;
+
+        throw 1;
+    }
+}
+
+void Clusterer::printInitialization() {
+
+    std::cout << "\n\nInitialising NMX-clusterer with the following parameters:\n\n";
+    std::cout << "Number of strips :         " << std::setw(10) << nmx::STRIPS_PER_PLANE << std::endl;
+    std::cout << "Bits to ignore :           " << std::setw(10) << nmx::IGNORE_BITS << std::endl;
+    std::cout << "Minor bits :               " << std::setw(10) << nmx::MINOR_BITS << std::endl;
+    std::cout << "Major bits :               " << std::setw(10) << nmx::MAJOR_BITS << std::endl;
+    std::cout << "Neighbours to include :    " << std::setw(10) << nmx::INCLUDE_N_NEIGHBOURS << std::endl;
+    std::cout << "Maximum time for cluster : " << std::setw(10) << nmx::MAX_CLUSTER_TIME << std::endl;
+    std::cout << "Number of boxes :          " << std::setw(10) << nmx::NBOXES << std::endl;
+    std::cout << "\n";
+    std::cout << "Max IGNORE :               " << std::setw(10) << nmx::MAX_IGNORE << std::endl;
+    std::cout << "Max MINOR :                " << std::setw(10) << nmx::MAX_MINOR << std::endl;
+    std::cout << "Max MAJOR :                " << std::setw(10) << nmx::MAX_MAJOR << std::endl;
+    std::cout << "IGNORE bit-mask :          " << std::setw(10) << nmx::IGNORE_BITMASK << std::endl;
+    std::cout << "MINOR bit-mask :           " << std::setw(10) << nmx::MINOR_BITMASK << std::endl;
+    std::cout << "MAJOR bit-mask :           " << std::setw(10) << nmx::MAJOR_BITMASK << std::endl;
 }

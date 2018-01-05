@@ -58,6 +58,7 @@ private:
     bool pointsMatch(const nmx::data_point &p1, const nmx::data_point &p2);
 
     void flushOldestEvent();
+    void flushEvent(uint idx);
     void writeEventToFile(const EVMAN::cluster &cl);
 
     EVMAN::event convertToVector(nmx::cluster &cluster);

@@ -4,14 +4,12 @@
 
 #include <iostream>
 #include "BoxAdministration.h"
-#include "NMXClustererDefinitions.h"
 
 BoxAdministration::BoxAdministration()
         : m_stackHead(nmx::NBOXES-1),
           m_queueHead(-1),
           m_queueTail(-1)
 {
-
     init();
 }
 
@@ -47,8 +45,6 @@ void BoxAdministration::insertBoxInQueue(const uint &ibox) {
 
 void BoxAdministration::releaseBox(const uint &ibox) {
 
-    //std::cout << "Releasing box " << ibox;
-
     int emptyBox = ibox;
 
     if (emptyBox != m_queueHead && emptyBox != m_queueTail)  {
@@ -68,21 +64,13 @@ void BoxAdministration::releaseBox(const uint &ibox) {
 
 void BoxAdministration::releaseBoxFromMiddle(const uint &emptyBox) {
 
-    //std::cout << " from middle\n";
-
     int leftBox  = m_boxList.at(emptyBox).link2;
     int rightBox = m_boxList.at(emptyBox).link1;
     m_boxList[leftBox].link1  = rightBox;
     m_boxList[rightBox].link2 = leftBox;
 }
 
-
 void BoxAdministration::releaseBoxFromTail() {
-
-    // Be aware !!!
-    // empty box may be negative
-
-    //std::cout << " from tail\n";
 
     int emptyBox = m_queueTail;
     m_queueTail = m_boxList[emptyBox].link2;
@@ -103,38 +91,30 @@ void BoxAdministration::releaseBoxFromHead() {
         m_boxList[m_queueHead].link2 =- 1;
 }
 
-
-
-void BoxAdministration::updateBox(const int &boxid, const uint32_t strip, const uint32_t time) {
+void BoxAdministration::updateBox(const int &boxid, const nmx::data_point &point) {
 
     auto &box = m_boxList.at(boxid);
 
-    if (time < box.min_time)
-        box.min_time = time;
-    if (time > box.max_time)
-        box.max_time = time;
-    if (strip < box.min_strip)
-        box.min_strip = strip;
-    if (strip > box.max_strip)
-        box.max_strip = strip;
+    if (point.time < box.min_time)
+        box.min_time = point.time;
+    if (point.time > box.max_time)
+        box.max_time = point.time;
+    if (point.strip < box.min_strip)
+        box.min_strip = point.strip;
+    if (point.strip > box.max_strip)
+        box.max_strip = point.strip;
+
+    box.chargesum += point.charge;
 }
 
-bool BoxAdministration::checkBox(const int &boxid, const nmx::data_point &point) {
-
-    //std::cout << "Checking box " << (uint)boxid << std::endl;
+inline bool BoxAdministration::checkBox(const int &boxid, const nmx::data_point &point) {
 
     auto box = m_boxList.at(boxid);
 
-    //std::cout << "Data.time = " << point.time << ", box.max_time = " << box.max_time << std::endl;
-    int time_diff = std::abs(static_cast<int>(point.time) - static_cast<int>(box.max_time));
-    //std::cout << "Time diff " << time_diff;
+    uint time_diff = std::abs(static_cast<int>(point.time) - static_cast<int>(box.max_time));
 
-    if (time_diff > nmx::MAX_CLUSTER_TIME) {
-      //  std::cout << " larger than " << nmx::MAX_CLUSTER_TIME << std::endl;
+    if (time_diff > nmx::MAX_CLUSTER_TIME)
         return true;
-    }
-
-    //std::cout << " smaller than " << nmx::MAX_CLUSTER_TIME << std::endl;
 
     return false;
 }

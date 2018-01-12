@@ -27,9 +27,15 @@ private:
 
     uint m_i1;
 
+    uint32_t m_nB;
+    uint32_t m_nC;
+    uint32_t m_nD;
+
     BoxAdministration m_boxes;
 
     nmx::row_array m_majortime_buffer;
+    nmx::row_array m_SortQ;
+    nmx::row_array m_ClusterQ;
     nmx::col_array m_mask;
     nmx::time_ordered_buffer m_time_ordered_buffer;
 

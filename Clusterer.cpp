@@ -10,7 +10,10 @@
 #include "Clusterer.h"
 
 Clusterer::Clusterer()
-    : m_i1(nmx::MINOR_BITMASK)
+    : m_i1(nmx::MINOR_BITMASK),
+      m_nB(0),
+      m_nC(0),
+      m_nD(0)
 {
 
     checkBitSum();

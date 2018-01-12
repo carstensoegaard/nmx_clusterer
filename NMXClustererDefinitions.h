@@ -28,15 +28,12 @@ namespace nmx {
 
     typedef std::array<data_point, STRIPS_PER_PLANE> cluster_data;
 
-    // Define a matrix as a buffer for the cluster-data
-    //typedef matrix<nmx::data_point, MAX_MINOR, STRIPS_PER_PLANE> data_matrix;
-
     struct buffer {
         uint npoints;
         cluster_data data;
     };
 
-    typedef std::array<buffer, MAX_MINOR> time_ordered_buffer;
+    typedef std::array<std::array<buffer, MAX_MINOR>, 2> time_ordered_buffer;
 }
 
 namespace nmx {

@@ -4,9 +4,13 @@ set (CMAKE_CXX_STANDARD 11)
 #set(testSOURCE testNMXClusterer.cpp NMXClustererDefinitions.h BoxAdministration.h BoxAdministration.cpp Clusterer.h Clusterer.cpp)
 #message(${testSOURCE})
 #add_executable(testnmxclusterer testNMXClusterer.cpp NMXClustererDefinitions.h BoxAdministration.h BoxAdministration.cpp Clusterer.h Clusterer.cpp)
-
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+#
 set(testfileSOURCE testNMXClustererFile.cpp NMXClustererSettings.h NMXClustererDefinitions.h BoxAdministration.h BoxAdministration.cpp Clusterer.h Clusterer.cpp)
-add_executable(testnmxclusterfile testNMXClustererFile.cpp NMXClustererSettings.h NMXClustererDefinitions.h SpecialDataReader.h SpecialDataReader.cpp EventManager.h EventManager.cpp BoxAdministration.h BoxAdministration.cpp Clusterer.h Clusterer.cpp)
+add_executable(testnmxclusterfile testNMXClustererFile.cpp NMXClustererSettings.h NMXClustererDefinitions.h SpecialDataReader.h SpecialDataReader.cpp EventManager.h EventManager.cpp BoxAdministration.h BoxAdministration.cpp Clusterer.h Clusterer.cpp ClusterAssembler.h ClusterAssembler.cpp)
+target_link_libraries(testnmxclusterfile Threads::Threads)
+
 
 #enable_testing()
 #find_package(GTest REQUIRED)

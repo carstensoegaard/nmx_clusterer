@@ -32,7 +32,7 @@ public:
     ~EventManager();
 
     void insertEvent(const EVMAN::event &ev);
-    void compareToStored(std::vector<nmx::cluster> &cluster_buffer);
+    void compareToStored(std::vector<nmx::cluster> *cluster_buffer);
     void flushBuffer();
 
     void printStats();

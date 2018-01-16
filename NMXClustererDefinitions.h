@@ -33,7 +33,8 @@ namespace nmx {
         cluster_data data;
     };
 
-    typedef std::array<std::array<buffer, MAX_MINOR>, 2> time_ordered_buffer;
+    typedef std::array<buffer, MAX_MINOR> tbuffer;
+    typedef std::array<tbuffer, 2> time_ordered_buffer;
 }
 
 namespace nmx {

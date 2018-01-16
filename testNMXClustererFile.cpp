@@ -12,6 +12,7 @@
 #include "SpecialDataReader.h"
 #include "EventManager.h"
 
+/*
 void printBuffer(const nmx::row_array &mask, const nmx::time_ordered_buffer &buffer) {
 
     for (int i = 0; i < nmx::MAX_MINOR; ++i) {
@@ -63,14 +64,14 @@ void printCluster(const std::vector<nmx::data_point> &cluster) {
     }
     std::cout << "\n";
 }
-
+*/
 std::vector<nmx::data_point> convertToVector(nmx::cluster &cluster) {
 
     std::vector<nmx::data_point> cl(cluster.data.begin(), cluster.data.begin()+cluster.npoints);
 
     return cl;
 }
-
+/*
 int32_t findDescrepancy(std::vector<nmx::data_point> cluster, std::vector<nmx::data_point> plane){
 
     //std::cout << "plane size = " << plane.size() << ", cluster size = " << cluster.size() << std::endl;
@@ -81,25 +82,25 @@ int32_t findDescrepancy(std::vector<nmx::data_point> cluster, std::vector<nmx::d
     int iter1 = 0;
 
     for (auto it1 = plane.begin(); it1 != plane.end(); ) {
-/*
+
         std::cout << "plane[" << iter1 << "] : ";
-*/
+
         nmx::data_point epoint = *it1;
-/*
+
         std::cout << "strip = " << epoint.strip << ", time = " << epoint.time << ", charge = " << epoint.charge
                   << std::endl;
-*/
+
         int iter2 = 0;
 
         for (auto it2 = cluster.begin(); it2 != cluster.end(); ) {
-/*
+
            std::cout << "cluster[" << iter2 << "] : ";
-*/
+
             nmx::data_point cpoint = *it2;
-/*
+
             std::cout << "strip = " << cpoint.strip << ", time = " << cpoint.time << ", charge = " << cpoint.charge
                       << std::endl;
-*/
+
             if ((cpoint.strip == epoint.strip)
                 && (cpoint.time == epoint.time)
                 && (cpoint.charge == epoint.charge)) {
@@ -133,7 +134,8 @@ int32_t findDescrepancy(std::vector<nmx::data_point> cluster, std::vector<nmx::d
 
     return c_size - (c_size - (int)cluster.size());
 }
-
+*/
+/*
 void compareClusterToEvents(nmx::cluster cluster, std::vector<plane> &events) {
 
     int32_t min_lostpoints = INT32_MAX;
@@ -148,21 +150,21 @@ void compareClusterToEvents(nmx::cluster cluster, std::vector<plane> &events) {
     plane pbuf_orig = cl;
     plane pbuf_lost;
     plane pbuf_gained;
-/*
+
     std::cout << "Cluster size = " << pbuf_orig.size() << std::endl;
-*/
+
     for (auto it = events.begin(); it != events.end();) {
 
         plane plane = *it;
-/*
+
         std::cout << "Comparing to event with " << plane.size() << " points\n";
-*/
-/*
+
+
         std::cout << "Comparing : \n";
         printCluster(cl);
         std::cout << "To : \n";
         printCluster(plane);
-*/
+
         int32_t descrepancy = findDescrepancy(cl, plane);
 
         if (descrepancy == 0) {
@@ -198,11 +200,11 @@ void compareClusterToEvents(nmx::cluster cluster, std::vector<plane> &events) {
 
     std::cout << "Best match ";
 
-    printCluster(pbuf_orig);
+    //printCluster(pbuf_orig);
 
     if (min_lostpoints < min_gainedpoints) {
         std::cout << "lost " << min_lostpoints << " points from :\n";
-        printCluster(pbuf_lost);
+      //  printCluster(pbuf_lost);
         events.erase(events.begin()+best_lost);
 
     } else {
@@ -211,7 +213,7 @@ void compareClusterToEvents(nmx::cluster cluster, std::vector<plane> &events) {
         events.erase(events.begin()+best_gained);
     }
 }
-
+*/
 int main() {
 
     srand(1);
@@ -298,12 +300,12 @@ int main() {
                     //printBuffer(c.getMajorTimeBuffer(), c.getTimeOrderedBuffer());
                     //printMask(c.getClusterMask());
 
-                    std::vector<nmx::cluster> &produced_clusters = c.getProducedClusters();
+                    std::vector<nmx::cluster> *produced_clusters = c.getProducedClusters();
 /*
                     if (produced_clusters.size() > 0)
                         std::cout << "Received " << produced_clusters.size() << " clusters.\n";
 */
-                    while (produced_clusters.size() > 0) {
+                    while (produced_clusters->size() > 0) {
 
                         evman.compareToStored(produced_clusters);
                         /*
@@ -343,9 +345,9 @@ int main() {
 
         c.endRun();
 
-        std::vector<nmx::cluster> &produced_clusters = c.getProducedClusters();
+        std::vector<nmx::cluster> *produced_clusters = c.getProducedClusters();
 
-        while (produced_clusters.size() > 0) {
+        while (produced_clusters->size() > 0) {
 
             evman.compareToStored(produced_clusters);
         }

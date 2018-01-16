@@ -34,24 +34,24 @@ void EventManager::insertEvent(const EVMAN::event &ev) {
     m_nevents++;
 }
 
-void EventManager::compareToStored(std::vector<nmx::cluster> &cluster_buffer) {
+void EventManager::compareToStored(std::vector<nmx::cluster> *cluster_buffer) {
 
     bool verbose = false;
 
-    m_nclusters += cluster_buffer.size();
+    m_nclusters += cluster_buffer->size();
 
     if (verbose)
-        std::cout << "Comparing " << cluster_buffer.size() << " clusters to " << m_insertedEvents.size()
+        std::cout << "Comparing " << cluster_buffer->size() << " clusters to " << m_insertedEvents.size()
                   << " stored events\n";
 
     // Loop over the produced clusters
-    for (uint icluster = 0; icluster < cluster_buffer.size(); icluster++) {
+    for (uint icluster = 0; icluster < cluster_buffer->size(); icluster++) {
 
         if (verbose)
             std::cout << "Comparing cluster " << icluster << std::endl;
 
         // Get the cluster and convert to event-type
-        nmx::cluster cl = cluster_buffer.at(icluster);
+        nmx::cluster cl = cluster_buffer->at(icluster);
         std::vector<nmx::data_point> cluster = convertToVector(cl);
 
         if (verbose)
@@ -119,7 +119,7 @@ void EventManager::compareToStored(std::vector<nmx::cluster> &cluster_buffer) {
 
     }
 
-    cluster_buffer.clear();
+    cluster_buffer->clear();
 
     if (m_insertedEvents.size() > 20) {
         m_ndiscarted_events++;

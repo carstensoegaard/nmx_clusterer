@@ -13,7 +13,7 @@ ClusterAssembler::ClusterAssembler() {
 
 void ClusterAssembler::addPointToCluster(nmx::data_point &point) {
 
-    bool verbose = true;
+    bool verbose = false;
 
     if (point.strip >= nmx::STRIPS_PER_PLANE) {
         std::cerr << "<ClusterAssembler::addPointToCluster> Strip # " << point.strip << " is larger than "
@@ -299,6 +299,8 @@ bool ClusterAssembler::flushCluster(const int boxid) {
     nmx::cluster produced_cluster;
     produced_cluster.npoints = 0;
 
+    std::cout << "Flushing cluster\n";
+
     /*
     bool verbose = false;
 
@@ -352,6 +354,7 @@ bool ClusterAssembler::flushCluster(const int boxid) {
     }
 
     m_produced_clusters.push_back(produced_cluster);
+    std::cout << "Number of produced clusters = " << m_produced_clusters.size() << std::endl;
 
     /*if (verbose)
         std::cout << "Realeasing box # " << boxid;*/

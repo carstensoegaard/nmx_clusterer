@@ -300,12 +300,12 @@ int main() {
                     //printBuffer(c.getMajorTimeBuffer(), c.getTimeOrderedBuffer());
                     //printMask(c.getClusterMask());
 
-                    std::vector<nmx::cluster> *produced_clusters = c.getProducedClusters();
+                    //std::vector<nmx::cluster> *produced_clusters = c.getProducedClusters();
 /*
                     if (produced_clusters.size() > 0)
                         std::cout << "Received " << produced_clusters.size() << " clusters.\n";
 */
-                    while (produced_clusters->size() > 0) {
+                    /*while (produced_clusters->size() > 0) {
 
                         evman.compareToStored(produced_clusters);
                         /*
@@ -335,7 +335,7 @@ int main() {
 
                         //produced_clusters.erase(it);
 
-                    }
+                    //}
                 }
 
                 multiplier++;
@@ -343,18 +343,19 @@ int main() {
             }
         }
 
-        c.endRun();
+        /*c.endRun();
 
         std::vector<nmx::cluster> *produced_clusters = c.getProducedClusters();
 
         while (produced_clusters->size() > 0) {
 
             evman.compareToStored(produced_clusters);
-        }
+        }*/
 
         repeat++;
     }
 
+    c.terminate();
     evman.flushBuffer();
 
     evman.printStats();

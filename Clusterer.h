@@ -27,6 +27,7 @@ public:
     std::vector<nmx::cluster> *getProducedClusters() { return m_produced_clusters; }
 
     void endRun();
+    void terminate() { m_termintate = true; }
 
 
 private:
@@ -40,7 +41,16 @@ private:
     std::thread pro;
     std::thread con;
 
-    std::vector<nmx::data_point> m_databuffer;
+    uint32_t m_nAdded;
+    uint32_t m_nInserted;
+    uint32_t m_writelock;
+    uint32_t m_readlock;
+
+    bool m_termintate;
+
+    nmx::data_point m_pointbuf;
+
+    std::array<nmx::data_point, 100> m_databuffer;
 
     std::vector<nmx::cluster> *m_produced_clusters;
 

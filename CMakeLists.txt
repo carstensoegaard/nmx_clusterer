@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
-set (CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_BUILD_TYPE debug)
 
 #set(testSOURCE testNMXClusterer.cpp NMXClustererDefinitions.h BoxAdministration.h BoxAdministration.cpp Clusterer.h Clusterer.cpp)
 #message(${testSOURCE})

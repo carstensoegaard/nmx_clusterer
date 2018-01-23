@@ -296,18 +296,15 @@ bool ClusterAssembler::mergeAndInsert(uint32_t lo_idx, uint32_t hi_idx, nmx::dat
 
 bool ClusterAssembler::flushCluster(const int boxid) {
 
+    bool verbose = false;
+
     nmx::cluster produced_cluster;
     produced_cluster.npoints = 0;
 
-    std::cout << "Flushing cluster\n";
-
-    /*
-    bool verbose = false;
-
     if (verbose) {
         std::cout << "Flushing cluster " << boxid << std::endl;
-        printMask();
-    }*/
+    //    printMask();
+    }
 
     nmx::box box = m_boxes.getBox(boxid);
 
@@ -354,7 +351,8 @@ bool ClusterAssembler::flushCluster(const int boxid) {
     }
 
     m_produced_clusters.push_back(produced_cluster);
-    std::cout << "Number of produced clusters = " << m_produced_clusters.size() << std::endl;
+    if (verbose)
+        std::cout << "Number of produced clusters = " << m_produced_clusters.size() << std::endl;
 
     /*if (verbose)
         std::cout << "Realeasing box # " << boxid;*/

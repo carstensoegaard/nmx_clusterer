@@ -20,7 +20,7 @@ Clusterer::Clusterer()
       m_nInserted(0),
       m_readlock(false),
       m_writelock(false),
-      m_termintate(false)
+      m_terminate(false)
 {
 
     checkBitSum();
@@ -85,7 +85,9 @@ bool Clusterer::addDataPoint(const nmx::data_point &point) {
 
 void Clusterer::producer(void) {
 
-    bool verbose = true;
+    std::cout << "Started sorting thread!\n";
+
+    bool verbose = false;
 
     //std::cout << "Producer init: " << m_nAdded << ", " << m_nInserted << std::endl;
 
@@ -93,10 +95,17 @@ void Clusterer::producer(void) {
 
     while(1) {
 
-        if (m_termintate && (m_nAdded == m_nInserted))
-            return;
-
-      //  std::cout << "Added points = " << m_nAdded << ", inserted points = " << m_nInserted << std::endl;
+        if (m_terminate) {
+            if (m_nAdded != m_nInserted) {
+                std::cout << "<Clusterer::SortingThread> Terminate! Waiting for all points to be inserted\n";
+                std::cout << m_nAdded << " points added\n";
+                std::cout << m_nInserted << " points inserted\n";
+            } else {
+                std::cout << "<Clusterer::SortingThread> Terminated !!!\n";
+                return;
+            }
+        }
+        //  std::cout << "Added points = " << m_nAdded << ", inserted points = " << m_nInserted << std::endl;
 
         while (m_writelock || m_nAdded == m_nInserted) {
             //std::cout << "Write lock is " /*<< m_writelock*/ << std::endl;
@@ -108,7 +117,8 @@ void Clusterer::producer(void) {
         m_nInserted++;
         m_readlock = false;
 
-        std::cout << m_nInserted << " points inserted\n";
+        if (verbose)
+            std::cout << m_nInserted << " points inserted\n";
 
         uint minorTime = getMinorTime(point.time);
         uint majorTime = getMajorTime(point.time);
@@ -132,7 +142,8 @@ void Clusterer::producer(void) {
                 while (m_nB != m_nC)
                     std::this_thread::yield();
 
-                moveToClusterer(nmx::MINOR_BITMASK-m_i1+std::min(m_i1,minorTime));
+                moveToClusterer(nmx::MINOR_BITMASK-m_i1+std::min(m_i1,minorTime)+1, minorTime, majorTime);
+               /*
                 for (uint idx = m_i1+1; idx < nmx::MINOR_BITMASK; idx++) {
                     if (verbose)
                         std::cout << "Setting majortime_buf[" << idx << "] = " << majorTime - 1 << std::endl;
@@ -143,9 +154,12 @@ void Clusterer::producer(void) {
                         std::cout << "Setting majortime_buf[" << idx << "] = " << majorTime << std::endl;
                     m_majortime_buffer[idx] = majorTime;
                 }
-
-                m_i1 = minorTime;
+*/
+                if (verbose)
+                    std::cout << "Setting i1 to " << minorTime << std::endl;
+                //m_i1 = minorTime;
                 addToBuffer(point, minorTime);
+                //printTimeOrderedBuffer();
 
             } else { // majorTime > (m_majortime_buffer.at(0) + 1)
 
@@ -157,14 +171,18 @@ void Clusterer::producer(void) {
                 while (m_nB != m_nC)
                     std::this_thread::yield();
 
-                moveToClusterer(nmx::MINOR_BITMASK);
+                moveToClusterer(nmx::MINOR_BITMASK, minorTime, majorTime);
+                /*-
                 for (uint idx = 0; idx < minorTime; idx++)
                     m_majortime_buffer[idx] = majorTime;
                 for (uint idx = minorTime +1; idx < nmx::MINOR_BITMASK; idx++)
                     m_majortime_buffer[idx] = majorTime -1;
-
-                m_i1 = minorTime;
+*/
+                if (verbose)
+                    std::cout << "Setting i1 to " << minorTime << std::endl;
+                //m_i1 = minorTime;
                 addToBuffer(point, minorTime);
+                //printTimeOrderedBuffer();
 
                 while (m_nB != m_nC)
                     std::this_thread::yield();
@@ -177,7 +195,8 @@ void Clusterer::producer(void) {
 
         } else { // majorTime <= m_buffer.at(0)
 
-            std::cout << "What-what = " << majorTime - m_majortime_buffer.at(minorTime) << std::endl;
+            if (verbose)
+                std::cout << "What-what = " << majorTime - m_majortime_buffer.at(minorTime) << std::endl;
 
             switch (majorTime - m_majortime_buffer.at(minorTime)) {
 
@@ -193,14 +212,19 @@ void Clusterer::producer(void) {
                     while (m_nB != m_nC) {
                         std::this_thread::yield();
                     }
-
-                    moveToClusterer(minorTime - m_i1);
-                    for (uint idx = m_i1 + 1; idx < minorTime; idx++)
+                    /*
+                    std::cout << "Changing majortime buffer from idx " << m_i1 +1 << " to " << minorTime << std::endl;
+                    for (uint idx = m_i1 + 1; idx < minorTime; idx++) {
+                        std::cout << "Setting b2[" << idx << "] to " << majorTime << std::endl;
                         m_majortime_buffer[idx] = majorTime;
-                    //flushBuffer(m_i1 + 1, minorTime, majorTime);
+                    }*/
+                    moveToClusterer(minorTime - m_i1, minorTime, majorTime);
 
-                    m_i1 = minorTime;
+                    if (verbose)
+                        std::cout << "Setting i1 to " << minorTime << std::endl;
+                  //  m_i1 = minorTime;
                     addToBuffer(point, minorTime);
+                    //printTimeOrderedBuffer();
 
                     break;
 
@@ -210,6 +234,7 @@ void Clusterer::producer(void) {
                         std::cout << "Case 4\n";
 
                     addToBuffer(point, minorTime);
+                    //printTimeOrderedBuffer();
 
                     break;
                 default:
@@ -219,7 +244,14 @@ void Clusterer::producer(void) {
         }
 
         nprocessed++;
-        std::cout << "Processed " << nprocessed << " points\n";
+        if (verbose)
+            std::cout << "Processed " << nprocessed << " points\n";
+
+        if (verbose)
+            std::cout << "i1 = " << m_i1 << std::endl;
+
+        if (verbose)
+        printMajorTimeBuffer();
     }
 
     if (verbose) {
@@ -239,6 +271,8 @@ inline void Clusterer::addToBuffer(const nmx::data_point &point, const uint mino
         return;
     }
 
+    bool verbose = false;
+
     uint32_t i0 = m_SortQ[minorTime];
 
     nmx::tbuffer &tbuf = m_time_ordered_buffer.at(i0);
@@ -247,7 +281,8 @@ inline void Clusterer::addToBuffer(const nmx::data_point &point, const uint mino
     buf.data.at(buf.npoints) = point;
     buf.npoints++;
 
-    std::cout << "Buffer[" << i0 << "][" << minorTime << "] contains " << buf.npoints << " points\n";
+    if (verbose)
+        std::cout << "Buffer[" << i0 << "][" << minorTime << "] contains " << buf.npoints << " points\n";
 }
 
 /*
@@ -264,7 +299,7 @@ inline void Clusterer::flushBuffer(uint lo_idx, uint hi_idx, uint32_t buffertime
 }
 */
 
-inline void Clusterer::moveToClusterer(uint d) {
+inline void Clusterer::moveToClusterer(uint d, uint minorTime, uint majorTime) {
 
     if (d > nmx::MAX_MINOR) {
         std::string s("\n<Clusterer::moveToClusterer> Cannot move ");
@@ -273,10 +308,11 @@ inline void Clusterer::moveToClusterer(uint d) {
         s.append(std::to_string(nmx::MAX_MINOR));
         s.append(" FATAL ERROR");
         std::cout << s;
+        //return;
         throw 1;
     }
 
-    bool verbose = true;
+    bool verbose = false;
 
     if (verbose) {
         std::string s("\nWill move ");
@@ -289,20 +325,31 @@ inline void Clusterer::moveToClusterer(uint d) {
 
         uint idx = (i+m_nB)%nmx::MAX_MINOR;
 
-        /*if (verbose)
-            std::cout << "Moving cluster with idx " << idx << std::endl;*/
-
+        if (verbose)
+            std::cout << "Moving cluster with idx " << idx << std::endl;
         m_SortQ[idx]    = m_ClusterQ[idx];
         m_ClusterQ[idx] = !m_SortQ[idx];
+
+        if (idx <= minorTime)
+            m_majortime_buffer.at(idx) = majorTime;
+        else
+            m_majortime_buffer.at(idx) = majorTime -1;
     }
 
+
     m_nB += d;
+    uint i1 = m_nB%nmx::MAX_MINOR - 1;
+    if (verbose)
+        std::cout << "Setting i1 to " << i1 << std::endl;
+    m_i1 = i1;
 }
 
 //bool Clusterer::transfer(nmx::buffer &buf) {
 
 
 void Clusterer::consumer(void) {
+
+    std::cout << "Started clustering thread!\n";
 
     bool verbose = false;
 
@@ -317,7 +364,11 @@ void Clusterer::consumer(void) {
 
     while (1) {
 
-        std::cout << "nD = " << m_nD << std::endl;
+        if ((m_nB == m_nC) && m_terminate)
+            return;
+
+        if (verbose)
+            std::cout << "nD = " << m_nD << std::endl;
 
         while ((m_nB == m_nC) || m_nD)
             std::this_thread::yield();
@@ -326,11 +377,13 @@ void Clusterer::consumer(void) {
 
         nmx::buffer &buf = m_time_ordered_buffer.at(m_ClusterQ[idx]).at(idx);
 
-        std::cout << "Number of points at [" << m_ClusterQ[idx] << "][" << idx << "] = " << buf.npoints << std::endl;
+        if (verbose)
+            std::cout << "Number of points at [" << m_ClusterQ[idx] << "][" << idx << "] = " << buf.npoints << std::endl;
 
         for (int ipoint = 0; ipoint < buf.npoints; ipoint++) {
 
-            std::cout << "Point # " << ipoint << std::endl;
+            if (verbose)
+                std::cout << "Point # " << ipoint << std::endl;
 
             nmx::data_point point = buf.data.at(ipoint);
             assembler.addPointToCluster(point);
@@ -352,7 +405,7 @@ void Clusterer::endRun() {
 
     uint buffer_max = nmx::MINOR_BITMASK;
 
-    moveToClusterer(nmx::MINOR_BITMASK);
+    moveToClusterer(nmx::MINOR_BITMASK, nmx::MINOR_BITMASK, 0);
 
     //flushBuffer(m_i1+1, buffer_max, buffer_max);
     //flushBuffer(     0,       m_i1, buffer_max);
@@ -478,14 +531,15 @@ void Clusterer::printClusterBuffer() {
     std::cout << "\n";
     */
 }
-/*
+
 void Clusterer::printTimeOrderedBuffer() {
 
     std::cout << "Time ordered buffer :\n";
 
     for (uint idx = 0; idx < nmx::MAX_MINOR; idx++) {
 
-        auto buf = m_time_ordered_buffer.at(idx);
+        auto tbuf = m_time_ordered_buffer.at(m_SortQ.at(idx));
+        auto buf = tbuf.at(idx);
 
         if (buf.npoints == 0)
             continue;
@@ -515,7 +569,7 @@ void Clusterer::printTimeOrderedBuffer() {
         std::cout << "\n";
     }
 }
-*/
+
 void Clusterer::checkBitSum() {
 
     if (nmx::IGNORE_BITS + nmx::MINOR_BITS + nmx::MAJOR_BITS != 32) {
@@ -549,4 +603,21 @@ void Clusterer::printInitialization() {
     std::cout << "IGNORE bit-mask :          " << std::setw(10) << nmx::IGNORE_BITMASK << std::endl;
     std::cout << "MINOR bit-mask :           " << std::setw(10) << nmx::MINOR_BITMASK << std::endl;
     std::cout << "MAJOR bit-mask :           " << std::setw(10) << nmx::MAJOR_BITMASK << std::endl;
+}
+
+void Clusterer::printMajorTimeBuffer() {
+
+    std::cout <<"\nMajorTimeBuffer:\n";
+
+    for (uint idx = 0; idx < nmx::MAX_MINOR; idx++) {
+        if (idx%32 == 0)
+            std::cout << "\nIdx : ";
+        std::cout << std::setw(4) << idx << " ";
+    }
+    for (uint idx = 0; idx < nmx::MAX_MINOR; idx++) {
+        if (idx%32 == 0)
+            std::cout << "\nVal : ";
+        std::cout << std::setw(4) << m_majortime_buffer.at(idx) << " ";
+    }
+    std::cout << "\n";
 }

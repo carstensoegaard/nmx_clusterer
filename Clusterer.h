@@ -27,7 +27,7 @@ public:
     std::vector<nmx::cluster> *getProducedClusters() { return m_produced_clusters; }
 
     void endRun();
-    void terminate() { m_termintate = true; }
+    void terminate() { m_terminate = true; }
 
 
 private:
@@ -46,7 +46,7 @@ private:
     uint32_t m_writelock;
     uint32_t m_readlock;
 
-    bool m_termintate;
+    bool m_terminate;
 
     nmx::data_point m_pointbuf;
 
@@ -67,7 +67,7 @@ private:
 
     void addToBuffer(const nmx::data_point &point, const uint minorTime);
     //void flushBuffer(uint lo_idx, uint hi_idx, uint32_t buffertime);
-    void moveToClusterer(uint d);
+    void moveToClusterer(uint d, uint minorTime, uint majorTime);
     //bool transfer(nmx::buffer &buf);
 
     void reset();
@@ -95,7 +95,8 @@ public:
     void printBox(const nmx::box &box);
     void printPoint(const nmx::data_point &point);
     void printClusterBuffer();
-    //void printTimeOrderedBuffer();
+    void printTimeOrderedBuffer();
+    void printMajorTimeBuffer();
 };
 
 #endif //NMX_CLUSTERER_CLUSTERER_H

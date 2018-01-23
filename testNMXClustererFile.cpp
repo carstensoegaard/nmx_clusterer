@@ -343,8 +343,8 @@ int main() {
             }
         }
 
-        /*c.endRun();
-
+        c.endRun();
+        /*
         std::vector<nmx::cluster> *produced_clusters = c.getProducedClusters();
 
         while (produced_clusters->size() > 0) {

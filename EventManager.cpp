@@ -34,24 +34,24 @@ void EventManager::insertEvent(const EVMAN::event &ev) {
     m_nevents++;
 }
 
-void EventManager::compareToStored(std::vector<nmx::cluster> *cluster_buffer) {
+void EventManager::compareToStored(std::vector<nmx::cluster> &cluster_buffer) {
 
     bool verbose = false;
 
-    m_nclusters += cluster_buffer->size();
+    m_nclusters += cluster_buffer.size();
 
     if (verbose)
-        std::cout << "Comparing " << cluster_buffer->size() << " clusters to " << m_insertedEvents.size()
+        std::cout << "Comparing " << cluster_buffer.size() << " clusters to " << m_insertedEvents.size()
                   << " stored events\n";
 
     // Loop over the produced clusters
-    for (uint icluster = 0; icluster < cluster_buffer->size(); icluster++) {
+    for (uint icluster = 0; icluster < cluster_buffer.size(); icluster++) {
 
         if (verbose)
             std::cout << "Comparing cluster " << icluster << std::endl;
 
         // Get the cluster and convert to event-type
-        nmx::cluster cl = cluster_buffer->at(icluster);
+        nmx::cluster cl = cluster_buffer.at(icluster);
         std::vector<nmx::data_point> cluster = convertToVector(cl);
 
         if (verbose)
@@ -88,6 +88,7 @@ void EventManager::compareToStored(std::vector<nmx::cluster> *cluster_buffer) {
             for (int ievent = 0; ievent < m_insertedEvents.size(); ievent++)
                 printEvent(m_insertedEvents.at(ievent));
 
+            m_ofile.close();
             throw 1;
         }
 
@@ -119,7 +120,7 @@ void EventManager::compareToStored(std::vector<nmx::cluster> *cluster_buffer) {
 
     }
 
-    cluster_buffer->clear();
+    cluster_buffer.clear();
 
     if (m_insertedEvents.size() > 20) {
         m_ndiscarted_events++;
@@ -300,7 +301,7 @@ void EventManager::flushEvent(uint idx) {
 
     uint eventno = event.eventnumber;
 
-    //std::cout << "Event # " << eventno << "\n";
+    //std::cout << "Writing event # " << eventno << " to file.\n";
 
     m_ofile << "Event # " << eventno << "\n";
 
@@ -319,30 +320,6 @@ void EventManager::flushEvent(uint idx) {
 void EventManager::flushOldestEvent() {
 
     flushEvent(0);
-
-    /*
-    uint eventno = m_eventBuffer.at(0).eventnumber;
-
-    std::cout << "Event # " << eventno << "\n";
-
-    m_ofile << "Event # " << eventno << "\n";
-
-    writeEventToFile(m_eventBuffer.at(0));
-
-    uint cl_cnt = 0;
-
-    for (auto &val : m_produced_clusters) {
-
-        if (val.eventnumber == eventno) {
-
-//            m_ofile << "Cluster # " << cl_cnt << "\n";
-            writeEventToFile(val);
-        }
-    }
-
-    m_insertedEvents.erase(m_insertedEvents.begin());
-    m_eventBuffer.erase(m_eventBuffer.begin());
-     */
 }
 
 

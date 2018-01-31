@@ -29,7 +29,7 @@ public:
     void updateBox(const int &boxid, const nmx::data_point &point);
     bool checkBox(const int &boxid, const nmx::data_point &point);
 
-    nmx::box &getBox(const int &boxid) { return m_boxList.at(boxid); }
+    nmx::box &getBox(const int &boxid);
 
     void printStack();
     void printQueue();

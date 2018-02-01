@@ -27,6 +27,7 @@ namespace nmx {
     typedef std::array<int32_t, STRIPS_PER_PLANE> col_array;
 
     typedef std::array<data_point, STRIPS_PER_PLANE> cluster_data;
+    typedef std::array<data_point, NCLUSTER_POINTS> cluster_points;
 
     struct buffer {
         uint npoints;
@@ -52,7 +53,7 @@ namespace nmx {
     struct cluster {
         nmx::box box;
         uint npoints;
-        cluster_data data;
+        cluster_points data;
     };
 }
 

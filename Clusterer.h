@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <thread>
+#include <mutex>
 
 #include "NMXClustererDefinitions.h"
 #include "BoxAdministration.h"
@@ -72,6 +73,8 @@ private:
     nmx::row_array m_SortQ;
     nmx::row_array m_ClusterQ;
     nmx::time_ordered_buffer m_time_ordered_buffer;
+
+    std::mutex m_lock;
 
     uint32_t getMinorTime(uint32_t time);
     uint32_t getMajorTime(uint32_t time);

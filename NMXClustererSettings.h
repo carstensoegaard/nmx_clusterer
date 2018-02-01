@@ -45,6 +45,9 @@ namespace nmx {
     const uint32_t MAJOR_BITMASK  = MAX_MAJOR  - 1;
 
     const uint NBOXES = STRIPS_PER_PLANE/(2*INCLUDE_N_NEIGHBOURS+1)+1;
+
+    const uint NCLUSTER_POINTS = 10;
+    const uint NCLUSTERS = 100;
 }
 
 #endif //PROJECT_NMXCLUSTERERSETTINGS_H

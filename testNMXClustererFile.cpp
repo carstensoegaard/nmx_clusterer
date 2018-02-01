@@ -50,6 +50,8 @@ int main() {
 
     std::cout << "\nWill repeat " << events.size() << " events " << nrepeats << " times.\n";
 
+    uint nproducedclusters = 0;
+
     while (repeat < nrepeats) {
 
         std::cout << "*** Repeat # " << repeat << " ***\n";
@@ -108,9 +110,11 @@ int main() {
                         }
                     }*/
 
-                    while (produced_clusters.size() > 0) {
+                    /*while (produced_clusters.size() > 0) {
                         evman.compareToStored(produced_clusters);
-                    }
+                    }*/
+
+                    nproducedclusters += produced_clusters.size();
 
                     c.getProducedClusters().clear();
                     c.releaseReadLock();
@@ -127,14 +131,18 @@ int main() {
 
     std::vector<nmx::cluster> &produced_clusters = c.getProducedClusters();
     //std::cout << "Received " << produced_clusters.size() << " clusters.\n";
-    while (produced_clusters.size() > 0) {
+    /*while (produced_clusters.size() > 0) {
         evman.compareToStored(produced_clusters);
-    }
+    }*/
 
+
+    nproducedclusters += produced_clusters.size();
 
     evman.flushBuffer();
 
     evman.printStats();
+
+    std::cout << "Produced " << nproducedclusters << " clusters\n";
 
     c.terminate();
 

@@ -107,7 +107,7 @@ void BoxAdministration::updateBox(const int &boxid, const nmx::data_point &point
     box.chargesum += point.charge;
 }
 
-inline bool BoxAdministration::checkBox(const int &boxid, const nmx::data_point &point) {
+bool BoxAdministration::checkBox(const int &boxid, const nmx::data_point &point) {
 
     auto box = m_boxList.at(boxid);
 

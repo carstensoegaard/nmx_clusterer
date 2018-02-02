@@ -159,7 +159,7 @@ bool Clusterer::transfer(nmx::buffer &buf) {
 
     for (int ipoint = 0; ipoint < buf.npoints; ipoint++) {
 
-        nmx::data_point point = buf.data.at(ipoint);
+        nmx::data_point &point = buf.data.at(ipoint);
 /*
         if (point.strip == 162)
             verbose = true;
@@ -289,7 +289,7 @@ bool Clusterer::newCluster(nmx::data_point &point) {
     for (uint istrip = lo; istrip <= hi; istrip++)
         m_mask.at(istrip) = newbox;
 
-    m_boxes.updateBox(newbox, point.strip, point.time);
+    m_boxes.updateBox(newbox, point);
 
     m_cluster.at(point.strip) = point;
 
@@ -334,7 +334,7 @@ bool Clusterer::insertInCluster(nmx::data_point &point) {
     for (int istrip = lo; istrip <= hi; istrip++)
         m_mask.at(istrip) = boxid;
 
-    m_boxes.updateBox(boxid, point.strip, point.time);
+    m_boxes.updateBox(boxid, point);
 
     m_cluster.at(point.strip) = point;
 

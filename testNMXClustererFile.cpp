@@ -299,10 +299,10 @@ int main() {
                     //printMask(c.getClusterMask());
 
                     std::vector<nmx::cluster> &produced_clusters = c.getProducedClusters();
-/*
+
                     if (produced_clusters.size() > 0)
                         std::cout << "Received " << produced_clusters.size() << " clusters.\n";
-*/
+
                     while (produced_clusters.size() > 0) {
 
                         evman.compareToStored(produced_clusters);

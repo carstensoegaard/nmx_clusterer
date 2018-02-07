@@ -12,6 +12,8 @@
 #include "SpecialDataReader.h"
 #include "EventManager.h"
 
+typedef std::chrono::high_resolution_clock Clock;
+
 int main() {
 
     srand(1);
@@ -20,10 +22,12 @@ int main() {
     uint32_t maxbinsperevent = 30;
     uint32_t maxtimeperevent = nspertimebin*maxbinsperevent*2;
 
-    Clusterer c;
+    std::mutex m;
+    Clusterer c(m);
     c.setVerboseLevel(0);
 
     std::vector<plane> insertedEvents;
+
 
     uint repeat = 0;
 
@@ -45,16 +49,18 @@ int main() {
 
     EventManager evman;
 
-    int nrepeats = 2;
+    int nrepeats = 1000;
     int multiplier = 5;
 
     std::cout << "\nWill repeat " << events.size() << " events " << nrepeats << " times.\n";
 
-    uint nproducedclusters = 0;
+    uint64_t npoints = 0;
+
+    auto t1 = Clock::now();
 
     while (repeat < nrepeats) {
 
-        std::cout << "*** Repeat # " << repeat << " ***\n";
+        //std::cout << "*** Repeat # " << repeat << " ***\n";
 
         for (int ievent = 0; ievent < /*1*/events.size(); ievent++) {
 
@@ -77,8 +83,6 @@ int main() {
 
                     uint ipoint = rand() % xplane.size();
 
-                    //std::cout << "Inserting point # " << ipoint << " of " << xplane.size() << " points." << std::endl;
-
                     nmx::data_point point = xplane.at(ipoint);
                     xplane.erase(xplane.begin() + ipoint);
 
@@ -87,37 +91,14 @@ int main() {
                     uint32_t charge = point.charge;
 
                     c.addDataPoint(strip, time, charge);
-                    //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                    npoints++;
 
-                    c.setReadLock();
+                    m.lock();
                     std::vector<nmx::cluster> &produced_clusters = c.getProducedClusters();
-
-                    //if (produced_clusters.size() > 0)
-                      //  std::cout << "Received " << produced_clusters.size() << " clusters.\n";
-
-/*  for (uint icluster = 0; icluster < produced_clusters.size(); icluster++) {
-
-                        auto cluster = produced_clusters.at(icluster);
-
-                        auto points = cluster.data;
-
-                        for (uint ipoint = 0; ipoint < cluster.npoints; ipoint++) {
-
-                            auto point = points.at(ipoint);
-
-                            if (point.time == 19328)
-                                std::cout << "I GOT THE POINT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
-                        }
-                    }*/
-
-                    /*while (produced_clusters.size() > 0) {
+                    while (produced_clusters.size() > 0) {
                         evman.compareToStored(produced_clusters);
-                    }*/
-
-                    nproducedclusters += produced_clusters.size();
-
-                    c.getProducedClusters().clear();
-                    c.releaseReadLock();
+                    }
+                    m.unlock();
                 }
 
                 multiplier++;
@@ -130,19 +111,22 @@ int main() {
     c.endRun();
 
     std::vector<nmx::cluster> &produced_clusters = c.getProducedClusters();
-    //std::cout << "Received " << produced_clusters.size() << " clusters.\n";
-    /*while (produced_clusters.size() > 0) {
+    while (produced_clusters.size() > 0) {
         evman.compareToStored(produced_clusters);
-    }*/
-
-
-    nproducedclusters += produced_clusters.size();
+    }
 
     evman.flushBuffer();
 
+    auto t2 = Clock::now();
+
+    std::cout << "Number of inserted data-points                  : " << std::setw(10) << npoints << std::endl;
     evman.printStats();
 
-    std::cout << "Produced " << nproducedclusters << " clusters\n";
+    auto time = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+
+    std::cout << "Performed in " << time << " micro-seconds\n";
+    std::cout << "Time per data point is : " << 1.*time/npoints << " microseconds\n";
+    std::cout << "Which is a rate of " << 1./(time/npoints/1000000.) << " Hz\n";
 
     c.terminate();
 

@@ -13,6 +13,9 @@ public:
 
     PairClusters();
 
+    void transferCluster(const nmx::cluster& cl);
+
+    void process();
 
 
 private:

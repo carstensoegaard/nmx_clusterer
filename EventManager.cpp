@@ -96,17 +96,7 @@ void EventManager::compareToStored(std::vector<nmx::cluster> &cluster_buffer) {
         auto inserted_buf = m_insertedEvents.at(best_match[1]);
 
         removeMatchingPoints(cluster, m_insertedEvents.at(best_match[1]).data);
-/*
-        if (cluster.size() != 0) {
-            std::cout << "Cluster has " << cluster.size() << " remaining points\n";
-            std::cout << "Cluster :\n";
-            printEvent(cluster_buf);
-            std::cout << "Event :\n";
-            printEvent(inserted_buf);
 
-            throw 2;
-        }
-*/
         if (verbose) {
             std::cout << best_match[0] << " points matched, " << m_insertedEvents.at(best_match[1]).data.size()
                       << " remain\n";
@@ -153,7 +143,7 @@ void EventManager::printStats() {
     std::cout << "Number of produced clusters                     : " << std::setw(10) << m_nclusters << std::endl;
     std::cout << "Number of exactly produced clusters             : " << std::setw(10) << m_nexact << std::endl;
     std::cout << "Number of discarded event fragments             : " << std::setw(10) << m_ndiscarted_events << std::endl;
-    std::cout << "Numner og discarded points                      : " << std::setw(10) << m_ndiscarded_points << std::endl;
+    std::cout << "Number og discarded points                      : " << std::setw(10) << m_ndiscarded_points << std::endl;
     std::cout << "Average number of discarded points per fragment : " << std::setw(10)
               << double(m_ndiscarded_points)/double(m_ndiscarted_events) << std::endl;
 
@@ -167,7 +157,6 @@ std::array<int, 2> EventManager::compare(std::vector<nmx::data_point> &cluster) 
     ret[1] = 0; // Index of best matching event
 
     // Set the number of points in the cluster
-    //uint npoints = cluster.size();
 
     // Loop over the inserted events
     for (int ievent = 0; ievent < m_insertedEvents.size(); ievent++) {
@@ -178,7 +167,6 @@ std::array<int, 2> EventManager::compare(std::vector<nmx::data_point> &cluster) 
         // Compare cluster to event and get the discrepancy
         int nmatching = numberOfMatchingPoints(cluster, inserted.data);
 
-        //std::cout << nmatching << " matching points found\n";
         if (nmatching > ret[0]) {
 
             ret[0] = nmatching;
@@ -204,8 +192,6 @@ void EventManager::removeMatchingPoints(std::vector<nmx::data_point> &cluster, s
         for (auto it2 = stored.begin(); it2 != stored.end(); it2++) {
 
             if (pointsMatch(*it1, *it2)) {
-
-                //  std::cout << "MATCH !!!!\n";
 
                 cluster.erase(it1);
                 stored.erase(it2);
@@ -300,8 +286,6 @@ void EventManager::flushEvent(uint idx) {
     auto event = m_eventBuffer.at(idx);
 
     uint eventno = event.eventnumber;
-
-    //std::cout << "Writing event # " << eventno << " to file.\n";
 
     m_ofile << "Event # " << eventno << "\n";
 

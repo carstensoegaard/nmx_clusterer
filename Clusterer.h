@@ -16,7 +16,7 @@ class Clusterer {
 
 public:
 
-    Clusterer();
+    Clusterer(std::mutex& m);
     ~Clusterer();
 
     bool addDataPoint(const nmx::data_point &point);
@@ -28,8 +28,6 @@ public:
     void endRun();
     void terminate() { m_terminate = true; }
 
-    void setReadLock() { m_read_lock = true; }
-    void releaseReadLock() { m_read_lock = false; }
     std::vector<nmx::cluster>& getProducedClusters() { return m_produced_clusters; }
 
     void setVerboseLevel(uint level = 0) { m_verbose_level = level; }
@@ -50,17 +48,11 @@ private:
 
     bool m_new_point;
 
-    uint32_t m_nAdded;
-    uint32_t m_nInserted;
-    bool m_read_lock;
+    std::mutex& m_mutex;
 
-    bool m_sort_active;
-    bool m_cluster_active;
     bool m_terminate;
 
     nmx::data_point m_point_buffer;
-
-    //std::array<nmx::data_point, 100> m_databuffer;
 
     nmx::cluster_data m_cluster;
     std::vector<nmx::cluster> m_produced_clusters;
@@ -74,21 +66,21 @@ private:
     nmx::row_array m_ClusterQ;
     nmx::time_ordered_buffer m_time_ordered_buffer;
 
-    std::mutex m_lock;
-
     uint32_t getMinorTime(uint32_t time);
     uint32_t getMajorTime(uint32_t time);
 
-    void addToBuffer(const nmx::data_point &point, const uint minorTime);
+    void addToBuffer(const nmx::data_point &point, uint minorTime);
     void moveToClusterer(uint d, uint minorTime, uint majorTime);
 
     uint checkMask(uint strip, int &lo_idx, int &hi_idx);
     bool newCluster(nmx::data_point &point);
     bool insertInCluster(nmx::data_point &point);
     bool mergeAndInsert(uint32_t lo_idx, uint32_t hi_idx, nmx::data_point &point);
-    bool flushCluster(const int boxid);
+    bool flushCluster(int boxid);
     uint getLoBound(int strip);
     uint getHiBound(int strip);
+
+    void guardB();
 
     void reset();
 

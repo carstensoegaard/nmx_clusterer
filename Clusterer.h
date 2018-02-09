@@ -54,7 +54,7 @@ private:
 
     nmx::data_point m_point_buffer;
 
-    nmx::cluster_data m_cluster;
+    nmx::buffer_data m_cluster;
     std::vector<nmx::cluster> m_produced_clusters;
 
     BoxAdministration m_boxes;

@@ -30,6 +30,10 @@ namespace nmx {
     // Maximum length of a cluster.
     // Detector specific parameter.
     const uint MAX_CLUSTER_TIME = static_cast<uint>(30 * 32);
+
+    const uint CLUSTER_IGNORE_BITS =  5;
+    const uint CLUSTER_MINOR_BITS  =  7;
+    const uint CLUSTER_MAJOR_BITS  = 20;
 }
 
 namespace nmx {
@@ -47,7 +51,17 @@ namespace nmx {
     const uint NBOXES = STRIPS_PER_PLANE/(2*INCLUDE_N_NEIGHBOURS+1)+1;
 
     const uint NCLUSTER_POINTS = 10;
-    const uint NCLUSTERS = 100;
+    const uint NCLUSTERS = 10;
+
+    const uint32_t CLUSTER_MAX_IGNORE = 1 << CLUSTER_IGNORE_BITS;
+    const uint32_t CLUSTER_MAX_MINOR  = 1 << CLUSTER_MINOR_BITS;
+    const uint32_t CLUSTER_MAX_MAJOR  = 1 << CLUSTER_MAJOR_BITS;
+
+    const uint32_t CLUSTER_IGNORE_BITMASK = CLUSTER_MAX_IGNORE - 1;
+    const uint32_t CLUSTER_MINOR_BITMASK  = CLUSTER_MAX_MINOR  - 1;
+    const uint32_t CLUSTER_MAJOR_BITMASK  = CLUSTER_MAX_MAJOR  - 1;
+
+
 }
 
 #endif //PROJECT_NMXCLUSTERERSETTINGS_H

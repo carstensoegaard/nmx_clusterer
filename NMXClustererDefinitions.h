@@ -26,19 +26,17 @@ namespace nmx {
     // Define an array of length CHANNELS_PER_PLANE
     typedef std::array<int32_t, STRIPS_PER_PLANE> col_array;
 
-    typedef std::array<data_point, STRIPS_PER_PLANE> cluster_data;
-    typedef std::array<data_point, STRIPS_PER_PLANE> cluster_points;
+    typedef std::array<data_point, STRIPS_PER_PLANE> buffer_data;
 
     struct buffer {
         uint npoints;
-        cluster_data data;
+        buffer_data data;
     };
 
     typedef std::array<buffer, MAX_MINOR> tbuffer;
     typedef std::array<tbuffer, 2> time_ordered_buffer;
-}
 
-namespace nmx {
+    // Cluster formation element definitions
 
     struct box {
         uint32_t min_strip;
@@ -46,15 +44,20 @@ namespace nmx {
         uint32_t min_time;
         uint32_t max_time;
         uint64_t chargesum;
+        uint64_t maxcharge;
         int link1;
         int link2;
     };
+
+    typedef std::array<data_point, STRIPS_PER_PLANE> cluster_points;
 
     struct cluster {
         nmx::box box;
         uint npoints;
         cluster_points data;
     };
+
+    typedef std::array<cluster, NCLUSTERS> cluster_buffer;
 }
 
 

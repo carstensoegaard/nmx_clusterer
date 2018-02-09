@@ -2,6 +2,9 @@
 // Created by soegaard on 11/2/17.
 //
 
+#ifndef TEST_CLUSTERER_FILE
+#define TEST_CLUSTERER_FILE
+
 #include <iomanip>
 #include <iostream>
 #include <vector>
@@ -132,3 +135,5 @@ int main() {
 
     return 0;
 }
+
+#endif

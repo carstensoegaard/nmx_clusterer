@@ -96,8 +96,6 @@ void BoxAdministration::releaseBoxFromHead() {
     // Be aware !!!
     // empty box may be negative
 
-    //std::cout << " from head\n";
-
     int emptyBox = m_queueHead;
     m_queueHead = m_boxList[emptyBox].link1;
     if (m_boxList[emptyBox].link1 > -1)
@@ -122,6 +120,8 @@ void BoxAdministration::updateBox(const int &boxid, const nmx::data_point &point
         box.max_strip = point.strip;
 
     box.chargesum += point.charge;
+    if (point.charge > box.maxcharge)
+        box.maxcharge = point.charge;
 }
 
 bool BoxAdministration::checkBox(const int &boxid, const nmx::data_point &point) {
@@ -130,7 +130,7 @@ bool BoxAdministration::checkBox(const int &boxid, const nmx::data_point &point)
         std::cerr << "<BoxAdminitration::checkBox> Box " << boxid << " is out of range [0,"
                   << nmx::NBOXES -1 << "]\n";
 
-    auto box = m_boxList.at(boxid);
+    auto box = m_boxList.at(static_cast<uint>(boxid));
 
     uint time_diff = std::abs(static_cast<int>(point.time) - static_cast<int>(box.max_time));
 
@@ -150,6 +150,8 @@ inline void BoxAdministration::resetBox(const int &boxid) {
     m_boxList.at(boxid).max_strip = 0;
     m_boxList.at(boxid).min_time = UINT32_MAX;
     m_boxList.at(boxid).max_time = 0;
+    m_boxList.at(boxid).chargesum = 0;
+    m_boxList.at(boxid).maxcharge = 0;
 }
 
 nmx::box& BoxAdministration::getBox(const int &boxid) {

@@ -45,6 +45,7 @@ namespace nmx {
         uint32_t max_time;
         uint64_t chargesum;
         uint64_t maxcharge;
+        uint8_t  plane;
         int link1;
         int link2;
     };

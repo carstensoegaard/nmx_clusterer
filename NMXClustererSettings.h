@@ -34,6 +34,8 @@ namespace nmx {
     const uint CLUSTER_IGNORE_BITS =  5;
     const uint CLUSTER_MINOR_BITS  =  7;
     const uint CLUSTER_MAJOR_BITS  = 20;
+
+    const uint MAX_CLUSTER_TIME_DIFF = 32;
 }
 
 namespace nmx {

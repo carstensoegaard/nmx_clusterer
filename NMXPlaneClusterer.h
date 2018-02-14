@@ -11,13 +11,14 @@
 
 #include "NMXClustererDefinitions.h"
 #include "BoxAdministration.h"
+#include "NMXClusterManager.h"
 
-class Clusterer {
+class NMXPlaneClusterer {
 
 public:
 
-    Clusterer(std::mutex& m);
-    ~Clusterer();
+    NMXPlaneClusterer(NMXClusterManager &clusterManager, std::mutex& m);
+    ~NMXPlaneClusterer();
 
     bool addDataPoint(const nmx::data_point &point);
     bool addDataPoint(uint32_t strip, uint32_t time, uint32_t charge);
@@ -48,7 +49,9 @@ private:
 
     bool m_new_point;
 
+    NMXClusterManager &m_clusterManager;
     std::mutex& m_mutex;
+
 
     bool m_terminate;
 

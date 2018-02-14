@@ -6,30 +6,38 @@
 #define PROJECT_CLUSTERPAIRING_H
 
 #include "NMXClustererDefinitions.h"
-#include "NMXTimeOrderedBuffer.h"
 #include "NMXClusterManager.h"
+
+struct buffer {
+    uint32_t npoints;
+    std::array<int, nmx::NCLUSTERS> data;
+};
+
+struct pair {
+    uint64_t x_idx;
+    uint64_t y_idx;
+};
+
+struct pair_buffer {
+    uint64_t npairs;
+    std::array<pair, 100>;
+};
 
 class NMXClusterPairing {
 
 public:
 
-    NMXClusterPairing();
+    NMXClusterPairing(NMXClusterManager &clusterManager);
 
-    void transferCluster(uint plane, const nmx::cluster& cl);
-
-    void process();
-
+    pair_buffer pair(buffer &buf);
 
 private:
 
-    uint64_t m_nIn;
-    uint64_t m_nOut;
+    NMXClusterManager &m_cluster_manager;
 
-    NMXTimeOrderedBuffer m_time_ordered_buffer;
+    std::array<bool, nmx::NCLUSTERS> m_used;
 
-    void insertClusterInBuffer(uint plane, uint32_t time_idx, int cluster_idx);
-
-    void reset();
+    void reset(uint n);
 };
 
 #endif //PROJECT_PAIRCLUSTERS_H

@@ -6,16 +6,18 @@
 #include <limits>
 #include <iomanip>
 
-#include "Clusterer.h"
+#include "NMXPlaneClusterer.h"
 #include "NMXClustererHelper.h"
+#include "NMXClusterManager.h"
 
-Clusterer::Clusterer(std::mutex& m)
+NMXPlaneClusterer::NMXPlaneClusterer(NMXClusterManager &clusterManager, std::mutex& m)
     : m_verbose_level(0),
       m_i1(nmx::MINOR_BITMASK),
       m_nB(0),
       m_nC(0),
       m_nD(0),
       m_new_point(false),
+      m_clusterManager(clusterManager),
       m_mutex(m),
       m_terminate(false)
 {
@@ -25,27 +27,27 @@ Clusterer::Clusterer(std::mutex& m)
     reset();
 
     // Start threads
-    pro = std::thread(&Clusterer::producer, this);
-    con = std::thread(&Clusterer::consumer, this);
+    pro = std::thread(&NMXPlaneClusterer::producer, this);
+    con = std::thread(&NMXPlaneClusterer::consumer, this);
 }
 
-Clusterer::~Clusterer()
+NMXPlaneClusterer::~NMXPlaneClusterer()
 {
     // Join threads
     pro.join();
     con.join();
 }
 
-bool Clusterer::addDataPoint(uint32_t strip, uint32_t time, uint32_t charge) {
+bool NMXPlaneClusterer::addDataPoint(uint32_t strip, uint32_t time, uint32_t charge) {
 
     nmx::data_point point = {strip, charge, time};
 
     return addDataPoint(point);
 }
 
-bool Clusterer::addDataPoint(const nmx::data_point &point) {
+bool NMXPlaneClusterer::addDataPoint(const nmx::data_point &point) {
 
-    if (!nmx::checkPoint(point, "Clusterer::addDataPoint"))
+    if (!nmx::checkPoint(point, "NMXPlaneClusterer::addDataPoint"))
         return false;
 
     while (m_new_point)
@@ -55,7 +57,7 @@ bool Clusterer::addDataPoint(const nmx::data_point &point) {
     m_new_point = true;
 }
 
-void Clusterer::producer() {
+void NMXPlaneClusterer::producer() {
 
     std::cout << "Started sorting thread!\n";
 
@@ -154,7 +156,7 @@ void Clusterer::producer() {
     }
 }
 
-void Clusterer::consumer() {
+void NMXPlaneClusterer::consumer() {
 
     std::cout << "Started clustering thread!\n";
 
@@ -266,10 +268,10 @@ void Clusterer::consumer() {
     }
 }
 
-void Clusterer::addToBuffer(const nmx::data_point &point, const uint minorTime) {
+void NMXPlaneClusterer::addToBuffer(const nmx::data_point &point, const uint minorTime) {
 
-    if (!nmx::checkPoint(point, "Clusterer::addToBuffer") ||
-        !nmx::checkMinorTime(minorTime, "Clusterer::AddToBuffer"))
+    if (!nmx::checkPoint(point, "NMXPlaneClusterer::addToBuffer") ||
+        !nmx::checkMinorTime(minorTime, "NMXPlaneClusterer::AddToBuffer"))
         return;
 
     uint32_t i0 = m_SortQ[minorTime];
@@ -281,9 +283,9 @@ void Clusterer::addToBuffer(const nmx::data_point &point, const uint minorTime) 
     buf.npoints++;
 }
 
-void Clusterer::moveToClusterer(uint d, uint minorTime, uint majorTime) {
+void NMXPlaneClusterer::moveToClusterer(uint d, uint minorTime, uint majorTime) {
 
-    if (!nmx::checkD(d, "Clusterer::moveToClusterer"))
+    if (!nmx::checkD(d, "NMXPlaneClusterer::moveToClusterer"))
         throw 1;
 
     if (m_verbose_level > 1) {
@@ -327,7 +329,7 @@ void Clusterer::moveToClusterer(uint d, uint minorTime, uint majorTime) {
     m_i1 = minorTime;
 }
 
-uint Clusterer::checkMask(uint strip, int &lo_idx, int &hi_idx) {
+uint NMXPlaneClusterer::checkMask(uint strip, int &lo_idx, int &hi_idx) {
 
     // Return values :
     //     0 : Not in cluster
@@ -353,17 +355,17 @@ uint Clusterer::checkMask(uint strip, int &lo_idx, int &hi_idx) {
     return 0;
 }
 
-bool Clusterer::newCluster(nmx::data_point &point) {
+bool NMXPlaneClusterer::newCluster(nmx::data_point &point) {
 
     if (m_verbose_level > 2)
         std::cout << "Making new cluster ";
 
-    if (!nmx::checkPoint(point, "Clusterer::newCluster"))
+    if (!nmx::checkPoint(point, "NMXPlaneClusterer::newCluster"))
         return false;
 
     int newbox = m_boxes.getBoxFromStack();
     if ((newbox < 0) || (newbox > nmx::NBOXES -1)) {
-        std::cerr << "<Clusterer::newCluster> Got new box with # " << newbox << " which is not in range [0,"
+        std::cerr << "<NMXPlaneClusterer::newCluster> Got new box with # " << newbox << " which is not in range [0,"
                   << nmx::NBOXES -1 << "]\n";
     }
 
@@ -387,7 +389,7 @@ bool Clusterer::newCluster(nmx::data_point &point) {
     return true;
 };
 
-bool Clusterer::insertInCluster(nmx::data_point &point) {
+bool NMXPlaneClusterer::insertInCluster(nmx::data_point &point) {
 
     if (m_verbose_level > 2)
         std::cout << "Inserting in cluster at strip " << point.strip << std::endl;
@@ -417,7 +419,7 @@ bool Clusterer::insertInCluster(nmx::data_point &point) {
     }
 
     if ((boxid < 0) || (boxid > nmx::NBOXES -1)) {
-        std::cerr << "<Clusterer::insertInCluster> Box id " << boxid << " which is not in range [0,"
+        std::cerr << "<NMXPlaneClusterer::insertInCluster> Box id " << boxid << " which is not in range [0,"
                   << nmx::NBOXES -1 << "]\n";
     }
 
@@ -434,12 +436,12 @@ bool Clusterer::insertInCluster(nmx::data_point &point) {
     point = {0, 0, 0};
 }
 
-bool Clusterer::mergeAndInsert(uint32_t lo_idx, uint32_t hi_idx, nmx::data_point &point) {
+bool NMXPlaneClusterer::mergeAndInsert(uint32_t lo_idx, uint32_t hi_idx, nmx::data_point &point) {
 
     if (m_verbose_level > 2)
         std::cout << "Merging clusters ";
 
-    if (!nmx::checkPoint(point, "Clusterer::mergeAndInsert"))
+    if (!nmx::checkPoint(point, "NMXPlaneClusterer::mergeAndInsert"))
         return false;
 
     int final_cluster = -1;
@@ -509,7 +511,7 @@ bool Clusterer::mergeAndInsert(uint32_t lo_idx, uint32_t hi_idx, nmx::data_point
     }
 }
 
-bool Clusterer::flushCluster(const int boxid) {
+bool NMXPlaneClusterer::flushCluster(const int boxid) {
 
     if (m_verbose_level > 2) {
         std::cout << "Flushing cluster " << boxid << std::endl;
@@ -554,8 +556,9 @@ bool Clusterer::flushCluster(const int boxid) {
         }
     }
 
-
     m_mutex.lock();
+    int cluster_idx = m_clusterManager.getClusterFromStack();
+    m_clusterManager.getCluster(cluster_idx) = produced_cluster;
     m_produced_clusters.push_back(produced_cluster);
     m_mutex.unlock();
 
@@ -565,7 +568,7 @@ bool Clusterer::flushCluster(const int boxid) {
         nmx::printMask(m_mask);
 }
 
-uint Clusterer::getLoBound(int strip) {
+uint NMXPlaneClusterer::getLoBound(int strip) {
 
     strip -= nmx::INCLUDE_N_NEIGHBOURS;
 
@@ -578,7 +581,7 @@ uint Clusterer::getLoBound(int strip) {
     }
 }
 
-uint Clusterer::getHiBound(int strip) {
+uint NMXPlaneClusterer::getHiBound(int strip) {
 
     strip += nmx::INCLUDE_N_NEIGHBOURS;
 
@@ -592,7 +595,7 @@ uint Clusterer::getHiBound(int strip) {
     }
 }
 
-void Clusterer::endRun() {
+void NMXPlaneClusterer::endRun() {
 
     bool verbose = false;
 
@@ -623,7 +626,7 @@ void Clusterer::endRun() {
     }
 }
 
-inline uint32_t Clusterer::getMinorTime(uint32_t time) {
+inline uint32_t NMXPlaneClusterer::getMinorTime(uint32_t time) {
 
     time = time >> nmx::IGNORE_BITS;
     time = time & nmx::MINOR_BITMASK;
@@ -631,12 +634,12 @@ inline uint32_t Clusterer::getMinorTime(uint32_t time) {
     return time;
 }
 
-inline uint32_t Clusterer::getMajorTime(uint32_t time) {
+inline uint32_t NMXPlaneClusterer::getMajorTime(uint32_t time) {
 
     return time >> nmx::IGNORE_BITS >> nmx::MINOR_BITS;
 }
 
-void Clusterer::reset() {
+void NMXPlaneClusterer::reset() {
 
     // Reset time-ordered buffer
     for (uint index0 = 0; index0 < 2; index0++) {
@@ -668,7 +671,7 @@ void Clusterer::reset() {
     }
 }
 
-void Clusterer::guardB() {
+void NMXPlaneClusterer::guardB() {
 
     while (m_nB != m_nC/*m_nB - m_nC > nmx::MINOR_BITMASK*/) {
 
@@ -677,7 +680,7 @@ void Clusterer::guardB() {
     }
 }
 
-void Clusterer::checkBitSum() {
+void NMXPlaneClusterer::checkBitSum() {
 
     if (nmx::IGNORE_BITS + nmx::MINOR_BITS + nmx::MAJOR_BITS != 32) {
         std::cout << std::setfill('*') << std::setw(40) << "*" << std::endl;
@@ -693,7 +696,7 @@ void Clusterer::checkBitSum() {
     }
 }
 
-void Clusterer::printInitialization() {
+void NMXPlaneClusterer::printInitialization() {
 
     std::cout << "\n\nInitialising NMX-clusterer with the following parameters:\n\n";
     std::cout << "Number of strips :         " << std::setw(10) << nmx::STRIPS_PER_PLANE << std::endl;

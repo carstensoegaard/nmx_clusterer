@@ -12,14 +12,20 @@ class NMXClusterManager {
 
 public:
 
-    static NMXClusterManager& getInstance() {
+    NMXClusterManager();
+
+    //~NMXClusterManager() = default;
+
+    /*static NMXClusterManager& getInstance() {
         static NMXClusterManager instance;
 
         return instance;
-    }
+    }*/
 
     int getClusterFromStack();
     void returnClusterToStack(int idx);
+
+    void insertClusterInQueue(uint idx);
 
     nmx::cluster& getCluster(uint idx);
 
@@ -31,13 +37,16 @@ private:
     int m_stackHead;
     int m_stackTail;
 
+    int m_queueHead;
+    int m_queueTail;
+
     nmx::cluster_buffer m_buffer;
 
-    NMXClusterManager() = default;
-    ~NMXClusterManager() = default;
+    /*
+    NMXClusterManager();// = default;
     NMXClusterManager(const NMXClusterManager&) = delete;
     NMXClusterManager& operator=(const NMXClusterManager&) = delete;
-
+*/
     void init();
 };
 

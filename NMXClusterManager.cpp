@@ -7,7 +7,9 @@
 
 NMXClusterManager::NMXClusterManager()
         : m_stackHead(nmx::NCLUSTERS-1),
-          m_stackTail(0)
+          m_stackTail(0),
+          m_queueHead(-1),
+          m_queueTail(-1)
 {
     init();
 }
@@ -48,6 +50,17 @@ void NMXClusterManager::returnClusterToStack(int idx) {
     m_buffer.at(idx).box.link2 = m_stackTail;
 
     m_stackTail = idx;
+}
+
+void NMXClusterManager::insertClusterInQueue(uint idx) {
+
+    if (m_queueHead == -1)
+        m_queueHead = idx;
+    else {
+        m_buffer.at()
+    }
+    m_queueTail =
+
 }
 
 void NMXClusterManager::init() {

@@ -7,7 +7,7 @@
 //#include "test/TestBase.h"
 #include "../NMXClustererSettings.h"
 #include "../NMXClustererDefinitions.h"
-#include "../Clusterer.h"
+#include "../NMXPlaneClusterer.h"
 
 TEST(nmxClusterer__Test, testBitmask) {
 

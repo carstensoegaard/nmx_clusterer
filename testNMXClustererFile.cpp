@@ -11,7 +11,7 @@
 #include <algorithm>
 
 #include "NMXClustererDefinitions.h"
-#include "Clusterer.h"
+#include "NMXPlaneClusterer.h"
 #include "SpecialDataReader.h"
 #include "EventManager.h"
 
@@ -26,7 +26,7 @@ int main() {
     uint32_t maxtimeperevent = nspertimebin*maxbinsperevent*2;
 
     std::mutex m;
-    Clusterer c(m);
+    NMXPlaneClusterer c(m);
     c.setVerboseLevel(0);
 
     std::vector<plane> insertedEvents;

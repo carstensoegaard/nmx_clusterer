@@ -12,12 +12,14 @@
 #include "NMXClustererDefinitions.h"
 #include "BoxAdministration.h"
 #include "NMXClusterManager.h"
+#include "NMXClusterPairing.h"
+#include "NMXClustererHelper.h"
 
 class NMXPlaneClusterer {
 
 public:
 
-    NMXPlaneClusterer(NMXClusterManager &clusterManager, std::mutex& m);
+    NMXPlaneClusterer(NMXClusterManager &clusterManager, NMXClusterPairing &clusterPairing, std::mutex &mutex);
     ~NMXPlaneClusterer();
 
     bool addDataPoint(const nmx::data_point &point);
@@ -50,6 +52,7 @@ private:
     bool m_new_point;
 
     NMXClusterManager &m_clusterManager;
+    NMXClusterPairing &m_clusterParing;
     std::mutex& m_mutex;
 
 

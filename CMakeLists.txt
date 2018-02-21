@@ -8,7 +8,7 @@ find_package(Threads REQUIRED)
 set(NMX_CLUSTERER_SOURCES BoxAdministration.cpp NMXClusterManager.cpp NMXTimeOrderedBuffer.cpp NMXClusterer.cpp
         NMXClusterPairing.cpp NMXPlaneClusterer.cpp)
 set(NMX_CLUSTERER_HEADERS NMXClustererSettings.h NMXClustererDefinitions.h BoxAdministration.h NMXClusterManager.h
-        NMXTimeOrderedBuffer.h NMXPlaneClusterer.h NMXClusterPairing.h NMXClusterer.h)
+        NMXTimeOrderedBuffer.h NMXPlaneClusterer.h NMXClusterPairing.h NMXClusterer.h NMXLocationFinder.cpp NMXLocationFinder.h)
 add_library(libnmx ${NMX_CLUSTERER_SOURCES} ${NMX_CLUSTERER_HEADERS} NMXClusterer.cpp NMXClusterer.h)
 
 set(NMX_HELPER_SOURCES SpecialDataReader.cpp EventManager.cpp)

@@ -35,6 +35,8 @@ int NMXClusterManager::getClusterFromStack() {
 
     m_stackHead = newstackheadidx;
 
+    std::cout << "<NMXClusterManager::getClusterFromStack> Providing cluster # " << idx << std::endl;
+
     return idx;
 }
 
@@ -50,17 +52,26 @@ void NMXClusterManager::returnClusterToStack(int idx) {
     m_buffer.at(idx).box.link2 = m_stackTail;
 
     m_stackTail = idx;
+
+    std::cout << "<NMXClusterManager::returnClusterToStack> Returning cluster # " << idx << std::endl;
 }
 
 void NMXClusterManager::insertClusterInQueue(uint idx) {
 
-    if (m_queueHead == -1)
+    if ((m_queueHead == -1) &&(m_queueTail == -1)) {
         m_queueHead = idx;
-    else {
-        m_buffer.at()
+        m_buffer.at(idx).box.link1 = -1;
     }
-    m_queueTail =
+    else
+        m_buffer.at(m_queueTail).box.link1 = idx;
 
+    m_buffer.at(idx).box.link1 = -1;
+    m_buffer.at(idx).box.link2 = m_queueTail;
+}
+
+int NMXClusterManager::getNextFormQueue() {
+
+    return m_queueHead;
 }
 
 void NMXClusterManager::init() {

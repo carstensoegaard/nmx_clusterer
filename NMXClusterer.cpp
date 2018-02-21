@@ -5,7 +5,11 @@
 #include <iostream>
 #include "NMXClusterer.h"
 
-NMXClusterer::NMXClusterer() {}
+NMXClusterer::NMXClusterer()
+        : m_XplaneClusterer(m_clusterManager, m_clusterPairing, m_mutex),
+          m_YplaneClusterer(m_clusterManager, m_clusterPairing, m_mutex),
+          m_clusterPairing(m_clusterManager)
+{}
 
 
 void NMXClusterer::addDatapoint(unsigned int plane, nmx::data_point &point) {

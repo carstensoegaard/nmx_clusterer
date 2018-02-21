@@ -5,6 +5,7 @@
 #ifndef PROJECT_NMXCLUSTERER_H
 #define PROJECT_NMXCLUSTERER_H
 
+#include <thread>
 #include "NMXClusterPairing.h"
 #include "NMXClustererDefinitions.h"
 #include "NMXPlaneClusterer.h"
@@ -19,12 +20,12 @@ public:
 
 private:
 
-    NMXPlaneClusterer m_XplaneClusterer = NMXPlaneClusterer(m_clusterManager, m_mutex);
-    NMXPlaneClusterer m_YplaneClusterer = NMXPlaneClusterer(m_clusterManager, m_mutex);
+    NMXPlaneClusterer m_XplaneClusterer;// = NMXPlaneClusterer(m_clusterManager, m_clusterPairing, m_mutex);
+    NMXPlaneClusterer m_YplaneClusterer;// = NMXPlaneClusterer(m_clusterManager, m_clusterPairing, m_mutex);
 
     NMXClusterManager m_clusterManager;
 
-    NMXClusterPairing m_cluster_pairing;
+    NMXClusterPairing m_clusterPairing;// = NMXClusterPairing(m_clusterManager);
 
     std::mutex m_mutex;
 };

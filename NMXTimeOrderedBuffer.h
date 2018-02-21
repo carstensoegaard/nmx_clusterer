@@ -2,10 +2,10 @@
 // Created by soegaard on 2/8/18.
 //
 
-#define N 10
-#define IB 0
-#define MINB 3
-#define MAJB 29
+#define N 1000
+#define IB 5
+#define MINB 7
+#define MAJB 20
 
 #ifndef PROJECT_NMXTIMEORDEREDBUFFER_H
 #define PROJECT_NMXTIMEORDEREDBUFFER_H
@@ -121,7 +121,7 @@ void NMXTimeOrderedBuffer<T>::sortProcessor() {
             std::this_thread::yield();
         }
 
-        uint d = 0;
+        int d = 0;
 
         if (m_majortime >= (m_majorTimeBuffer.at(0) + 1)) {
 

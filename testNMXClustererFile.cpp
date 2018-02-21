@@ -14,6 +14,7 @@
 #include "NMXPlaneClusterer.h"
 #include "SpecialDataReader.h"
 #include "EventManager.h"
+#include "NMXClusterer.h"
 
 typedef std::chrono::high_resolution_clock Clock;
 
@@ -26,10 +27,10 @@ int main() {
     uint32_t maxtimeperevent = nspertimebin*maxbinsperevent*2;
 
     std::mutex m;
-    NMXPlaneClusterer c(m);
-    c.setVerboseLevel(0);
+    NMXClusterer c;
+    //c.setVerboseLevel(0);
 
-    std::vector<plane> insertedEvents;
+    //std::vector<plane> insertedEvents;
 
 
     uint repeat = 0;
@@ -71,48 +72,52 @@ int main() {
 
             for (int iplane = 0; iplane < 2; iplane++) {
 
-                plane xplane = (ev.at(iplane));
+                plane p = (ev.at(iplane));
 
-                for (int i = 0; i < xplane.size(); i++) {
+                for (int i = 0; i < p.size(); i++) {
 
-                    xplane.at(i).time = xplane.at(i).time * nspertimebin + multiplier * maxtimeperevent;
+                    p.at(i).time = p.at(i).time * nspertimebin + multiplier * maxtimeperevent;
                 }
 
-                evman.insertEvent(xplane);
+                evman.insertEvent(p);
 
-                insertedEvents.push_back(xplane);
+                //insertedEvents.push_back(p);
 
-                while (xplane.size() > 0) {
+                while (p.size() > 0) {
 
-                    uint ipoint = rand() % xplane.size();
+                    uint ipoint = rand() % p.size();
 
-                    nmx::data_point point = xplane.at(ipoint);
-                    xplane.erase(xplane.begin() + ipoint);
+                    nmx::data_point point = p.at(ipoint);
+                    p.erase(p.begin() + ipoint);
 
                     uint32_t strip = point.strip;
                     uint32_t time = point.time;
                     uint32_t charge = point.charge;
 
-                    c.addDataPoint(strip, time, charge);
+                    //c.addDataPoint(strip, time, charge);
+                    c.addDatapoint(iplane, point);
                     npoints++;
 
+                    /*
                     m.lock();
                     std::vector<nmx::cluster> &produced_clusters = c.getProducedClusters();
                     while (produced_clusters.size() > 0) {
                         evman.compareToStored(produced_clusters);
                     }
-                    m.unlock();
+                    m.unlock();*/
                 }
 
-                multiplier++;
             }
+            multiplier++;
         }
+
 
         repeat++;
     }
 
-    c.endRun();
+    //c.endRun();
 
+    /*
     std::vector<nmx::cluster> &produced_clusters = c.getProducedClusters();
     while (produced_clusters.size() > 0) {
         evman.compareToStored(produced_clusters);
@@ -132,7 +137,7 @@ int main() {
     std::cout << "Which is a rate of " << 1./(time/npoints/1000000.) << " Hz\n";
 
     c.terminate();
-
+*/
     return 0;
 }
 

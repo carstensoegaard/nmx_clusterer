@@ -15,7 +15,7 @@ int main() {
 
     std::vector<int> clusters;
 
-    NMXClusterManager &cm = NMXClusterManager::getInstance();
+    NMXClusterManager cm;// = NMXClusterManager::getInstance();
 
     cm.printStack();
 

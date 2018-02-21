@@ -7,10 +7,9 @@
 #include <iomanip>
 
 #include "NMXPlaneClusterer.h"
-#include "NMXClustererHelper.h"
-#include "NMXClusterManager.h"
 
-NMXPlaneClusterer::NMXPlaneClusterer(NMXClusterManager &clusterManager, std::mutex& m)
+NMXPlaneClusterer::NMXPlaneClusterer(NMXClusterManager &clusterManager, NMXClusterPairing &clusterPairing,
+                                     std::mutex &mutex)
     : m_verbose_level(0),
       m_i1(nmx::MINOR_BITMASK),
       m_nB(0),
@@ -18,7 +17,8 @@ NMXPlaneClusterer::NMXPlaneClusterer(NMXClusterManager &clusterManager, std::mut
       m_nD(0),
       m_new_point(false),
       m_clusterManager(clusterManager),
-      m_mutex(m),
+      m_clusterParing(clusterPairing),
+      m_mutex(mutex),
       m_terminate(false)
 {
     checkBitSum();
@@ -559,7 +559,7 @@ bool NMXPlaneClusterer::flushCluster(const int boxid) {
     m_mutex.lock();
     int cluster_idx = m_clusterManager.getClusterFromStack();
     m_clusterManager.getCluster(cluster_idx) = produced_cluster;
-    m_produced_clusters.push_back(produced_cluster);
+    m_clusterParing.insertClusterInQueue(cluster_idx);
     m_mutex.unlock();
 
     m_boxes.releaseBox(boxid);

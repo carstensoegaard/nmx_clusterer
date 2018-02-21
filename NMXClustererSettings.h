@@ -53,7 +53,7 @@ namespace nmx {
     const uint NBOXES = STRIPS_PER_PLANE/(2*INCLUDE_N_NEIGHBOURS+1)+1;
 
     const uint NCLUSTER_POINTS = 10;
-    const uint NCLUSTERS = 10;
+    const uint NCLUSTERS = 1000;
 
     const uint32_t CLUSTER_MAX_IGNORE = 1 << CLUSTER_IGNORE_BITS;
     const uint32_t CLUSTER_MAX_MINOR  = 1 << CLUSTER_MINOR_BITS;

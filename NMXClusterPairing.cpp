@@ -2,6 +2,7 @@
 // Created by soegaard on 1/31/18.
 //
 
+#include "NMXLocationFinder.h"
 #include "NMXClusterPairing.h"
 
 NMXClusterPairing::NMXClusterPairing(NMXClusterManager &clusterManager)
@@ -9,9 +10,52 @@ NMXClusterPairing::NMXClusterPairing(NMXClusterManager &clusterManager)
 {
 
     reset(nmx::NCLUSTERS);
+
+    m_process = std::thread(&NMXClusterPairing::process, this);
 }
 
-pair_buffer NMXClusterPairing::pair(buffer &buf) {
+void NMXClusterPairing::insertClusterInQueue(unsigned int idx) {
+
+    uint32_t time = m_cluster_manager.getCluster(idx).box.max_time;
+
+    m_time_ordered_buffer.insert(idx, time);
+}
+
+void NMXClusterPairing::process() {
+
+    NMXLocationFinder finder(m_cluster_manager);
+
+    buffer<int> prev;
+    prev.npoints = 0;
+
+    while (1) {
+
+        buffer<int> buf = m_time_ordered_buffer.getNextProcessed();
+
+        for (int i = 0; i < prev.npoints; i++) {
+
+            buf.data.at(buf.npoints+i) = prev.data.at(i);
+            buf.npoints++;
+        }
+
+        pair_buffer pbuffer = pair(buf);
+
+        prev.npoints = 0;
+
+        for (int i = 0; i < buf.npoints; i++) {
+
+            if (!m_used.at(i)) {
+                prev.data.at(prev.npoints) = buf.data.at(i);
+                prev.npoints++;
+            }
+        }
+
+        finder.find(pbuffer);
+    }
+}
+
+
+pair_buffer NMXClusterPairing::pair(buffer<int> &buf) {
 
     pair_buffer pbuffer;
     pbuffer.npairs = 0;
@@ -52,7 +96,7 @@ pair_buffer NMXClusterPairing::pair(buffer &buf) {
 
         if (best_match > -1) {
 
-            pair p;
+            clusterPair p;
 
             if (current_cluster.box.plane == 0) {
 
@@ -64,7 +108,7 @@ pair_buffer NMXClusterPairing::pair(buffer &buf) {
                 p.y_idx = buf.data.at(i);
             }
 
-            pbuffer.at(pbuffer.npairs) = p;
+            pbuffer.pairs.at(pbuffer.npairs) = p;
 
             m_used.at(i) = true;
             m_used.at(best_match) = true;
@@ -76,6 +120,7 @@ pair_buffer NMXClusterPairing::pair(buffer &buf) {
 
     return pbuffer;
 }
+
 
 void NMXClusterPairing::reset(uint n) {
 

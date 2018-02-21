@@ -27,7 +27,9 @@ public:
 
     void insertClusterInQueue(uint idx);
 
-    nmx::cluster& getCluster(uint idx);
+    int getNextFormQueue();
+
+    nmx::cluster& getCluster(uint idx) { return m_buffer.at(idx); }
 
     void printStack();
 

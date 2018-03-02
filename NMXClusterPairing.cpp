@@ -2,21 +2,37 @@
 // Created by soegaard on 1/31/18.
 //
 
+#include <iomanip>
 #include "NMXLocationFinder.h"
-#include "NMXClusterPairing.h"
+//#include "NMXClusterPairing.h"
 
 NMXClusterPairing::NMXClusterPairing(NMXClusterManager &clusterManager)
-        : m_cluster_manager(clusterManager)
+        : m_cluster_manager(clusterManager),
+          m_time_ordered_buffer(clusterManager)
 {
+
+    m_time_ordered_buffer.setVerboseLevel(0);
 
     reset(nmx::NCLUSTERS);
 
     m_process = std::thread(&NMXClusterPairing::process, this);
 }
 
+NMXClusterPairing::~NMXClusterPairing() {
+
+    m_process.join();
+}
+
 void NMXClusterPairing::insertClusterInQueue(unsigned int idx) {
 
-    uint32_t time = m_cluster_manager.getCluster(idx).box.max_time;
+    if (idx > nmx::NCLUSTERS) {
+        std::cout << "<NMXClusterPairing> Index " << idx << " out of range!\n";
+        throw 1;
+    }
+
+    nmx::cluster &cluster = m_cluster_manager.getCluster(idx);
+
+    uint32_t time = cluster.box.max_time;
 
     m_time_ordered_buffer.insert(idx, time);
 }
@@ -25,102 +41,172 @@ void NMXClusterPairing::process() {
 
     NMXLocationFinder finder(m_cluster_manager);
 
-    buffer<int> prev;
-    prev.npoints = 0;
+    nmx::cluster_queue previous;
+    previous.at(0) = -1;
+    previous.at(1) = -1;
+
+    int xSize = 0;
+    int ySize = 0;
+
+    nmx::pairBuffer pairbuf;
+    pairbuf.npairs = 0;
 
     while (1) {
 
-        buffer<int> buf = m_time_ordered_buffer.getNextProcessed();
+        nmx::cluster_queue current = m_time_ordered_buffer.getNextSorted();
 
-        for (int i = 0; i < prev.npoints; i++) {
+        calculateQmatrix(current, previous);
 
-            buf.data.at(buf.npoints+i) = prev.data.at(i);
-            buf.npoints++;
+        bool cont = true;
+
+        // This could be changed to a do-while loop
+        while (cont) {
+
+            nmx::clusterPair pair;
+            pair.x_idx = UINT32_MAX;
+            pair.y_idx = UINT32_MAX;
+
+            double minQ = 2.;
+
+            unsigned int x = UINT32_MAX;
+            unsigned int y = UINT32_MAX;
+
+            for (unsigned int ix = 0; ix < m_nXcurrent + m_nXprevious; ix++) {
+                for (unsigned int iy = 0; iy < m_nYcurrent + m_nYprevious; iy++) {
+                    double Q = m_Qmatrix.at(ix).at(iy).Qval;
+                    if (Q < minQ) {
+                        minQ = Q;
+                        x = ix;
+                        y = iy;
+                        pair.x_idx = m_Qmatrix.at(ix).at(iy).queue.at(0);
+                        pair.y_idx = m_Qmatrix.at(ix).at(iy).queue.at(1);
+                    }
+                }
+            }
+
+            nmx::QmatrixEntry &matrixEntry = m_Qmatrix.at(x).at(y);
+
+            if (minQ < nmx::DELTA_Q) {
+                if ((x < m_nXcurrent) && (y < m_nYcurrent))
+                    matrixEntry.Qval = 2.;
+                else {
+                    pairbuf.pairs.at(pairbuf.npairs) = pair;
+                    pairbuf.npairs++;
+                    matrixEntry.queue.at(0) = UINT32_MAX;
+                    matrixEntry.queue.at(1) = UINT32_MAX;
+                }
+            } else
+                cont = false;
         }
 
-        pair_buffer pbuffer = pair(buf);
+        for (unsigned int ix = m_nXcurrent; ix < m_nXcurrent+m_nXprevious; ix++) {
+            for (unsigned int iy = m_nYcurrent; iy < m_nYcurrent+m_nYprevious; iy++) {
 
-        prev.npoints = 0;
+                nmx::QmatrixEntry &matrixEntry = m_Qmatrix.at(ix).at(iy);
+                unsigned int Xidx = matrixEntry.queue.at(0);
+                unsigned int Yidx = matrixEntry.queue.at(1);
 
-        for (int i = 0; i < buf.npoints; i++) {
-
-            if (!m_used.at(i)) {
-                prev.data.at(prev.npoints) = buf.data.at(i);
-                prev.npoints++;
+                if (Xidx != UINT32_MAX)
+                    m_cluster_manager.returnClusterToStack(Xidx);
+                if (Yidx != UINT32_MAX)
+                    m_cluster_manager.returnClusterToStack(Yidx);
             }
         }
 
-        finder.find(pbuffer);
-    }
-}
+        previous.at(0) = UINT32_MAX;
+        previous.at(1) = UINT32_MAX;
 
+        unsigned int currentXidx = previous.at(0);
+        unsigned int currentYidx = previous.at(1);
 
-pair_buffer NMXClusterPairing::pair(buffer<int> &buf) {
+        for (unsigned int ix = 0; ix < m_nXcurrent; ix++) {
+            for (unsigned int iy = 0; iy < m_nYcurrent; iy++) {
 
-    pair_buffer pbuffer;
-    pbuffer.npairs = 0;
+                nmx::QmatrixEntry &matrixEntry = m_Qmatrix.at(ix).at(iy);
+                unsigned int Xidx = matrixEntry.queue.at(0);
+                unsigned int Yidx = matrixEntry.queue.at(1);
 
-    if (buf.npoints < 2)
-        return pbuffer;
-
-    for (uint i = 0; i < buf.npoints; i++) {
-
-        if (m_used.at(i))
-            continue;
-
-        nmx::cluster& current_cluster = m_cluster_manager.getCluster(buf.data.at(i));
-
-        uint n_matches = 0;
-        uint32_t min_time_diff = UINT32_MAX;
-        int64_t best_match = -1;
-
-        for (uint ii = i; ii < buf.npoints; ii ++) {
-
-            if (m_used.at(ii))
-                continue;
-
-            nmx::cluster& this_cluster = m_cluster_manager.getCluster(buf.data.at(ii));
-
-            if (current_cluster.box.plane == this_cluster.box.plane)
-                continue;
-
-            uint32_t cluster_time_diff = std::abs(current_cluster.box.max_time - this_cluster.box.max_time);
-
-            if (cluster_time_diff < nmx::MAX_CLUSTER_TIME_DIFF) {
-                if (cluster_time_diff < min_time_diff) {
-                    min_time_diff = cluster_time_diff;
-                    best_match = ii;
+                if (matrixEntry.Qval < nmx::DELTA_Q) {
+                    if (previous.at(0) == UINT32_MAX) {
+                        previous.at(0) = Xidx;
+                        previous.at(1) = Yidx;
+                        currentXidx = previous.at(0);
+                        currentYidx = previous.at(1);
+                    } else  {
+                        m_cluster_manager.getCluster(currentXidx).box.link1 = Xidx;
+                        currentXidx = Xidx;
+                        m_cluster_manager.getCluster(currentYidx).box.link1 = Yidx;
+                        currentYidx = Yidx;
+                    }
+                } else {
+                    m_cluster_manager.returnClusterToStack(Xidx);
+                    m_cluster_manager.returnClusterToStack(Yidx);
                 }
             }
         }
 
-        if (best_match > -1) {
+        finder.find(pairbuf);
+        pairbuf.npairs = 0;
 
-            clusterPair p;
-
-            if (current_cluster.box.plane == 0) {
-
-                p.x_idx = buf.data.at(i);
-                p.y_idx = buf.data.at(best_match);
-            } else {
-
-                p.x_idx = buf.data.at(best_match);
-                p.y_idx = buf.data.at(i);
-            }
-
-            pbuffer.pairs.at(pbuffer.npairs) = p;
-
-            m_used.at(i) = true;
-            m_used.at(best_match) = true;
-        }
+        if (m_terminate)
+            return;
     }
-
-    // Reset used array
-    reset(buf.npoints);
-
-    return pbuffer;
 }
 
+void NMXClusterPairing::calculateQmatrix(nmx::cluster_queue &current, nmx::cluster_queue &previous) {
+
+    m_nXcurrent = getQueueLength(current.at(0));
+    m_nYcurrent = getQueueLength(current.at(1));
+    m_nXprevious = getQueueLength(previous.at(0));
+    m_nYprevious = getQueueLength(previous.at(1));
+
+    int Xidx = (current.at(0) >= 0 ? current.at(0) : previous.at(0));
+    int Yidx = (current.at(1) >= 0 ? current.at(1) : previous.at(1));
+
+    for (int ix = 0; ix < m_nXcurrent + m_nXprevious; ix++) {
+
+        nmx::cluster &Xcluster = m_cluster_manager.getCluster(Xidx);
+        double xCharge = static_cast<double>(Xcluster.box.chargesum);
+
+        for (int iy = 0; iy < m_nYcurrent + m_nYprevious; iy++) {
+
+            nmx::cluster &Ycluster = m_cluster_manager.getCluster(Yidx);
+            double yCharge = static_cast<double>(Ycluster.box.chargesum);
+
+            nmx::QmatrixEntry &Qentry = m_Qmatrix.at(ix).at(iy);
+
+            Qentry.Qval = 2 * std::abs(xCharge - yCharge) / (xCharge + yCharge);
+            Qentry.queue.at(0) = Xidx;
+            Qentry.queue.at(1) = Yidx;
+
+            if (iy == m_nYcurrent)
+                Yidx = previous.at(1);
+            else
+                Yidx = Ycluster.box.link1;
+        }
+
+        if (ix == m_nXcurrent)
+            Xidx = previous.at(0);
+        else
+            Xidx = Xcluster.box.link1;
+
+        Yidx = (current.at(1) >= 0 ? current.at(1) : previous.at(1));
+    }
+}
+
+unsigned int NMXClusterPairing::getQueueLength(unsigned int idx) {
+
+    unsigned int length = 0;
+
+    while (idx >= 0) {
+
+        idx = m_cluster_manager.getCluster(idx).box.link1;
+
+        length++;
+    }
+
+    return length;
+}
 
 void NMXClusterPairing::reset(uint n) {
 

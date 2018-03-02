@@ -2,21 +2,117 @@
 // Created by soegaard on 2/8/18.
 //
 
-#define N 1000
+#ifndef PROJECT_NMXTIMEORDEREDBUFFER_H
+#define PROJECT_NMXTIMEORDEREDBUFFER_H
+
+#include <vector>
+#include <thread>
+#include <mutex>
+
+#include "NMXClustererDefinitions.h"
+#include "NMXClustererHelper.h"
+#include "NMXClusterManager.h"
+//#include "NMXClusterPairing.h"
+
+/*
+struct idx_buffer {
+    int nidx;
+    std::array<int, 100> data;
+};
+*/
+class NMXTimeOrderedBuffer {
+
+public:
+
+    NMXTimeOrderedBuffer(NMXClusterManager &clusterManager);
+    ~NMXTimeOrderedBuffer();
+
+    bool insert(int idx, int time);
+    //bool addDataPoint(uint32_t strip, uint32_t time, uint32_t charge);
+    nmx::cluster_queue getNextSorted();
+    //void consumer();
+
+    void endRun();
+    void terminate() { m_terminate = true; }
+
+    //std::vector<nmx::cluster>& getProducedClusters() { return m_produced_clusters; }
+
+    void setVerboseLevel(uint level = 0) { m_verbose_level = level; }
+
+
+private:
+
+    uint m_verbose_level;
+
+    uint m_i1;
+
+    uint32_t m_nB;
+    uint32_t m_nC;
+    uint32_t m_nD;
+
+    int m_newIdx;
+    int m_time;
+    bool m_new_inserted;
+    bool m_terminate;
+
+    std::thread pro;
+//    std::thread con;
+
+    void producer();
+
+
+    NMXClusterManager &m_clusterManager;
+//    NMXClusterPairing &m_clusterParing;
+//    std::mutex& m_mutex;
+
+    /*
+    nmx::buffer_data m_cluster;
+    std::vector<nmx::cluster> m_produced_clusters;
+*/
+
+    nmx::row_array m_majortime_buffer;
+    nmx::row_array m_SortQ;
+    nmx::row_array m_ClusterQ;
+    std::array<std::array<nmx::cluster_queue, nmx::MAX_MINOR>, 2> m_time_ordered_buffer;
+//    nmx::time_ordered_buffer m_time_ordered_buffer;
+
+    uint32_t getMinorTime(uint32_t time);
+    uint32_t getMajorTime(uint32_t time);
+
+    void addToBuffer(int idx, uint minorTime);
+    void moveToClusterer(uint d, uint minorTime, uint majorTime);
+
+    void guardB();
+
+    void reset();
+
+    void checkBitSum();
+    void printInitialization();
+};
+
+
+
+
+
+
+
+
+/*
+#define N 333
 #define IB 5
 #define MINB 7
 #define MAJB 20
 
-#ifndef PROJECT_NMXTIMEORDEREDBUFFER_H
-#define PROJECT_NMXTIMEORDEREDBUFFER_H
 
+#include <iomanip>
 #include <stdint-gcc.h>
 #include <zconf.h>
 #include <thread>
 #include <array>
 #include <iostream>
 #include "NMXClustererDefinitions.h"
-
+*/
+/*
 template <typename T>
 struct buffer {
     uint32_t npoints;
@@ -25,7 +121,8 @@ struct buffer {
 
 template <typename T>
 using buffer_array = std::array<buffer<T>, 1 << MINB>;
-
+*/
+/*
 template <typename T>
 class NMXTimeOrderedBuffer {
 
@@ -76,8 +173,12 @@ private:
     uint32_t getMajorTime(uint32_t time);
 
     void init();
-};
 
+    void printSortBuffer();
+    void printSortProcessedIndexes();
+};
+*/
+/*
 template <typename T>
 NMXTimeOrderedBuffer<T>::NMXTimeOrderedBuffer()
         : m_i1(m_minorbitmask),
@@ -90,28 +191,38 @@ NMXTimeOrderedBuffer<T>::NMXTimeOrderedBuffer()
 
     m_sortThread = std::thread(&NMXTimeOrderedBuffer::sortProcessor, this);
 }
-
+*/
+/*
 template <typename T>
 void NMXTimeOrderedBuffer<T>::insert(T const &entry, uint32_t time) {
 
     while (m_pointInserted)
         std::this_thread::yield();
 
+    int minortime = getMinorTime(time);
+    int majortime = getMajorTime(time);
+
+    std::cout << "<NMXTimeOrderedBuffer<" << typeid(T).name() << ">> inserted " << entry << ", at b2 = " << majortime
+              << ", idx = " << minortime << std::endl;
+
     m_pointInserted = true;
-    m_minortime = getMinorTime(time);
-    m_majortime = getMajorTime(time);
+    m_minortime = minortime;
+    m_majortime = majortime;
     m_entry_buffer = entry;
 }
-
-
+*/
+/*
 template <typename T>
 NMXTimeOrderedBuffer<T>::~NMXTimeOrderedBuffer()
 {
     m_sortThread.join();
 }
-
+*/
+/*
 template <typename T>
 void NMXTimeOrderedBuffer<T>::sortProcessor() {
+
+    std::cout << "Started time-ordered buffer\n";
 
     while (1) {
 
@@ -172,7 +283,8 @@ void NMXTimeOrderedBuffer<T>::sortProcessor() {
         m_pointInserted = false;
     }
 }
-
+*/
+/*
 
 template <typename T>
 buffer<T> NMXTimeOrderedBuffer<T>::getNextProcessed() {
@@ -182,6 +294,7 @@ buffer<T> NMXTimeOrderedBuffer<T>::getNextProcessed() {
     while ((m_nSorted <= m_nProcessed) || m_haltProcessing)
         std::this_thread::yield();
 
+
     uint idx = m_nProcessed % m_minormax;
 
     uint i0 = m_processedBuffer[idx];
@@ -189,16 +302,26 @@ buffer<T> NMXTimeOrderedBuffer<T>::getNextProcessed() {
     buffer_array<T> &buf_arr = m_timeOrderedBuffer.at(i0);
     buffer<T> buf_temp = buf_arr.at(idx);
 
-    buffer<T> &buf = buf_arr.at(idx);
 
-    buf.npoints = 0;
+
+    //if (buf_temp.npoints != 0) {
+        std::cout << "Providing the following indexes from [" << i0 << ", " << idx << "]\n";
+        for (int i = 0; i < buf_temp.npoints; i++)
+            std::cout << buf_temp.data.at(i) << " ";
+        std::cout << "\n";
+    //}
+
+    buf_arr.at(idx).npoints = 0;
+
+    //buf.npoints = 0;
 
     m_nProcessed++;
 
     return buf_temp;
 }
 
-
+*/
+/*
 template <typename T>
 inline uint32_t NMXTimeOrderedBuffer<T>::getMinorTime(uint32_t time) {
 
@@ -207,13 +330,15 @@ inline uint32_t NMXTimeOrderedBuffer<T>::getMinorTime(uint32_t time) {
 
     return time;
 }
-
+*/
+/*
 template <typename T>
 inline uint32_t NMXTimeOrderedBuffer<T>::getMajorTime(uint32_t time) {
 
     return time >> m_ignorebits >> m_minorbits;
 }
-
+*/
+/*
 template <typename T>
 void NMXTimeOrderedBuffer<T>::init() {
 
@@ -234,7 +359,8 @@ void NMXTimeOrderedBuffer<T>::init() {
         m_processedBuffer.at(i) = 1;
     }
 }
-
+*/
+/*
 template <typename T>
 void NMXTimeOrderedBuffer<T>::addToBuffer(const T &entry) {
 
@@ -247,21 +373,36 @@ void NMXTimeOrderedBuffer<T>::addToBuffer(const T &entry) {
     data.at(buf.npoints) = entry;
     buf.npoints++;
 }
-
+*/
+/*
 template <typename T>
 void NMXTimeOrderedBuffer<T>::slideTimeWindow(int d) {
 
     std::cout << "Sliding timewindow " << d << " steps\n";
+    std::cout << "nSorted = " << m_nSorted << ", nProcessed = " << m_nProcessed << ", minormax = "
+              << m_minormax << ", d = " << d << std::endl;
 
-    while (m_nSorted - m_nProcessed > m_minorbitmask - d)
+    printSortBuffer();
+    printSortProcessedIndexes();
+
+    while (m_nSorted != m_nProcessed)
         std::this_thread::yield();
+
 
     for (uint i = 0; i < d; ++i) {
 
         uint64_t idx = (i+m_nSorted)%m_minormax;
 
-        if (m_timeOrderedBuffer.at(m_processedBuffer.at(idx)).at(idx).npoints > 0)
-            throw "<NMXTimeOrderedBuffer> Processed buffer not empty before new input!\n";
+        int i0 = m_processedBuffer.at(idx);
+
+        buffer_array<T> &bufarr = m_timeOrderedBuffer.at(i0);
+        buffer<T> &buf = bufarr.at(idx);
+
+        if (buf.npoints > 0) {
+            std::cout << "<NMXTimeOrderedBuffer> Processed buffer at idx = [" << i0 << ", " << idx
+                      << "] not empty before new input!\n";
+            throw 1;
+        }
 
         m_sortBuffer.at(idx)      = m_processedBuffer.at(idx);
         m_processedBuffer.at(idx) = !m_sortBuffer.at(idx);
@@ -275,6 +416,52 @@ void NMXTimeOrderedBuffer<T>::slideTimeWindow(int d) {
     m_nSorted += d;
 
     m_i1 = m_minortime;
-}
 
+    printSortProcessedIndexes();
+}
+*/
+/*
+template <typename T>
+void NMXTimeOrderedBuffer<T>::printSortBuffer() {
+
+    std::cout << "<NMXTimeOrderedBuffer<" << typeid(T).name() << ">::printSortBuffer> Time ordered buffer :\n";
+
+    for (uint idx = 0; idx < nmx::MAX_MINOR; idx++) {
+
+        auto tbuf = m_timeOrderedBuffer.at(m_sortBuffer.at(idx));
+        auto buf = tbuf.at(idx);
+
+        if (buf.npoints == 0)
+            continue;
+
+        std::cout << "Index " << idx << std::endl;
+
+        std::cout << "Strip  ";
+        for (uint ientry = 0; ientry < buf.npoints; ientry++) {
+
+            auto point = buf.data.at(ientry);
+            std::cout << std::setw(5) << point;
+        }
+        std::cout << "\n";
+    }
+}
+*/
+/*
+template <typename T>
+void NMXTimeOrderedBuffer<T>::printSortProcessedIndexes() {
+
+    for (int i = 0; i < m_minormax; i++) {
+        if (i % 64 == 0)
+            std::cout << "\nIndex = " << std::setw(5) << i << " : ";
+        std::cout << m_sortBuffer.at(i);
+    }
+    for (int i = 0; i < m_minormax; i++) {
+        if (i % 64 == 0)
+            std::cout << "\nIndex = " << std::setw(5) << i << " : ";
+        std::cout << m_processedBuffer.at(i);
+    }
+    std::cout << "\n";
+
+}
+*/
 #endif //PROJECT_NMXTIMEORDEREDBUFFER_H

@@ -56,6 +56,18 @@ void NMXClusterManager::returnClusterToStack(int idx) {
     std::cout << "<NMXClusterManager::returnClusterToStack> Returning cluster # " << idx << std::endl;
 }
 
+nmx::cluster& NMXClusterManager::getCluster(uint idx) {
+
+    if (idx > nmx::NCLUSTERS) {
+        std::cout << "<NMXClusterManager::getCluster> Index " << idx << " out of range!\n";
+        throw 1;
+    }
+
+    nmx::cluster& cluster = m_buffer.at(idx);
+
+    return cluster;
+}
+
 void NMXClusterManager::insertClusterInQueue(uint idx) {
 
     if ((m_queueHead == -1) &&(m_queueTail == -1)) {

@@ -23,7 +23,7 @@ public:
 
     NMXLocationFinder(NMXClusterManager &clustermanager);
 
-    nmx_location find(pair_buffer &buf);
+    nmx_location find(nmx::pairBuffer &buf);
 
 private:
 

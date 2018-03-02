@@ -13,7 +13,7 @@ NMXLocationFinder::NMXLocationFinder(NMXClusterManager &clustermanager)
     m_file.open("NMX_PairedClusters.txt");
 }
 
-nmx_location NMXLocationFinder::find(pair_buffer &buf) {
+nmx_location NMXLocationFinder::find(nmx::pairBuffer &buf) {
 
     nmx_location loc;
     loc.time = -1;

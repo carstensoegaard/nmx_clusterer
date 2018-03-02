@@ -14,37 +14,45 @@ struct buffer {
     std::array<int, nmx::NCLUSTERS> data;
 };
 */
-struct clusterPair {
-    uint64_t time;
-    uint64_t x_idx;
-    uint64_t y_idx;
-};
 
-struct pair_buffer {
-    uint64_t npairs;
-    std::array<clusterPair, 100> pairs;
-};
+
 
 class NMXClusterPairing {
 
 public:
 
     NMXClusterPairing(NMXClusterManager &clusterManager);
+    ~NMXClusterPairing();
 
     void insertClusterInQueue(unsigned int idx);
 
-    pair_buffer pair(buffer<int> &buf);
+   // pair_buffer pair(nmx::idx_buffer &buf, nmx::idx_buffer &prevbuf);
 
 private:
 
     std::thread m_process;
 
-    NMXTimeOrderedBuffer<int> m_time_ordered_buffer;
+    NMXTimeOrderedBuffer m_time_ordered_buffer;
+    //NMXTimeOrderedBuffer m_time_ordered_buffer;
 
     NMXClusterManager &m_cluster_manager;
 
     std::array<bool, nmx::NCLUSTERS> m_used;
 
+    unsigned int m_nXcurrent;
+    unsigned int m_nYcurrent;
+    unsigned int m_nXprevious;
+    unsigned int m_nYprevious;
+
+    nmx::Qmatrix m_Qmatrix;
+
+    bool m_terminate;
+
+    void calculateQmatrix(nmx::cluster_queue &current, nmx::cluster_queue &previous);
+
+    unsigned int getQueueLength(unsigned int idx);
+
+    nmx::idx_buffer addBuffers(nmx::idx_buffer &b1, nmx::idx_buffer &b2);
     void process();
     void reset(uint n);
 };

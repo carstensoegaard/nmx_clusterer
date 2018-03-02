@@ -21,6 +21,8 @@ public:
 
     NMXPlaneClusterer(NMXClusterManager &clusterManager, NMXClusterPairing &clusterPairing, std::mutex &mutex);
     ~NMXPlaneClusterer();
+    void setPlane(int plane) { m_plane = plane; }
+
 
     bool addDataPoint(const nmx::data_point &point);
     bool addDataPoint(uint32_t strip, uint32_t time, uint32_t charge);
@@ -45,6 +47,8 @@ private:
     uint32_t m_nB;
     uint32_t m_nC;
     uint32_t m_nD;
+
+    int m_plane;
 
     std::thread pro;
     std::thread con;

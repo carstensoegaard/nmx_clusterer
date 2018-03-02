@@ -8,9 +8,6 @@
 
 #include "NMXClustererSettings.h"
 
-// Create matrices of size [nrows, ncols]
-//template <class T, size_t nrows, size_t ncols>
-//using matrix = std::array<std::array<T, ncols>, nrows>;
 
 namespace nmx {
 
@@ -32,6 +29,24 @@ namespace nmx {
         uint npoints;
         buffer_data data;
     };
+
+    struct idx_buffer {
+        int nidx;
+        std::array<int, 100> data;
+    };
+
+    typedef std::array<unsigned int ,2> cluster_queue;
+
+    struct QmatrixEntry {
+        double Qval;
+        cluster_queue queue;
+    };
+
+    // Create matrices of size [nrows, ncols]
+    template <class T, size_t nrows, size_t ncols>
+    using matrix = std::array<std::array<T, ncols>, nrows>;
+
+    typedef nmx::matrix<nmx::QmatrixEntry, 15, 15> Qmatrix;
 
     typedef std::array<buffer, MAX_MINOR> tbuffer;
     typedef std::array<tbuffer, 2> time_ordered_buffer;
@@ -59,6 +74,18 @@ namespace nmx {
     };
 
     typedef std::array<cluster, NCLUSTERS> cluster_buffer;
+
+    struct clusterPair {
+        unsigned int x_idx;
+        unsigned int y_idx;
+    };
+
+    struct pairBuffer {
+        uint64_t npairs;
+        std::array<clusterPair, 100> pairs;
+    };
+
+
 }
 
 

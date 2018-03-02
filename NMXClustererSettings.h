@@ -36,6 +36,8 @@ namespace nmx {
     const uint CLUSTER_MAJOR_BITS  = 20;
 
     const uint MAX_CLUSTER_TIME_DIFF = 32;
+
+    const double DELTA_Q = 0.3;
 }
 
 namespace nmx {

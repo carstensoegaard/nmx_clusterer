@@ -15,6 +15,7 @@ NMXPlaneClusterer::NMXPlaneClusterer(NMXClusterManager &clusterManager, NMXClust
       m_nB(0),
       m_nC(0),
       m_nD(0),
+      m_plane(-1),
       m_new_point(false),
       m_clusterManager(clusterManager),
       m_clusterParing(clusterPairing),
@@ -55,6 +56,8 @@ bool NMXPlaneClusterer::addDataPoint(const nmx::data_point &point) {
 
     m_point_buffer = point;
     m_new_point = true;
+
+    //std::cout << "NMXPlaneClusterer::addDataPoint> Added point to plane " << m_plane << std::endl;
 }
 
 void NMXPlaneClusterer::producer() {
@@ -514,7 +517,7 @@ bool NMXPlaneClusterer::mergeAndInsert(uint32_t lo_idx, uint32_t hi_idx, nmx::da
 bool NMXPlaneClusterer::flushCluster(const int boxid) {
 
     if (m_verbose_level > 2) {
-        std::cout << "Flushing cluster " << boxid << std::endl;
+        std::cout << "Flushing cluster " << boxid << " from plane " << m_plane <<  std::endl;
         nmx::printMask(m_mask);
     }
 
@@ -522,6 +525,7 @@ bool NMXPlaneClusterer::flushCluster(const int boxid) {
     produced_cluster.npoints = 0;
 
     nmx::box box = m_boxes.getBox(boxid);
+    produced_cluster.box = box;
 
     if (m_verbose_level > 2) {
         std::cout << "\nBox # " << boxid << ":\n";

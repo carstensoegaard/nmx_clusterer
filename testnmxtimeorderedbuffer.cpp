@@ -6,15 +6,15 @@
 
 #include "NMXTimeOrderedBuffer.h"
 
-void readOutput(NMXTimeOrderedBuffer<int> &tob) {
+void readOutput(NMXTimeOrderedBuffer &tob) {
 
     while (1) {
 
-        buffer<int> buf = tob.getNextProcessed();
+        nmx::idx_buffer buf = tob.getNextSorted();
 
-        std::cout << "Got " << buf.npoints << " points\n";
+        std::cout << "Got " << buf.nidx << " points\n";
 
-        for (uint i = 0; i < buf.npoints; i++) {
+        for (uint i = 0; i < buf.nidx; i++) {
 
             int val = buf.data.at(i);
 
@@ -25,7 +25,7 @@ void readOutput(NMXTimeOrderedBuffer<int> &tob) {
 
 int main() {
 
-    NMXTimeOrderedBuffer<int> tob;
+    NMXTimeOrderedBuffer tob;
 
     std::thread t1 = std::thread(readOutput, std::ref(tob));
 

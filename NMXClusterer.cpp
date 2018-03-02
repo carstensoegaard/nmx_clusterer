@@ -9,7 +9,12 @@ NMXClusterer::NMXClusterer()
         : m_XplaneClusterer(m_clusterManager, m_clusterPairing, m_mutex),
           m_YplaneClusterer(m_clusterManager, m_clusterPairing, m_mutex),
           m_clusterPairing(m_clusterManager)
-{}
+{
+    m_XplaneClusterer.setPlane(0);
+    m_XplaneClusterer.setVerboseLevel(0);
+    m_YplaneClusterer.setPlane(1);
+    m_YplaneClusterer.setVerboseLevel(0);
+}
 
 
 void NMXClusterer::addDatapoint(unsigned int plane, nmx::data_point &point) {

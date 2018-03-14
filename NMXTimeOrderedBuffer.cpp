@@ -6,16 +6,17 @@
 
 #include "NMXPlaneClusterer.h"
 
-NMXTimeOrderedBuffer::NMXTimeOrderedBuffer(NMXClusterManager &clusterManager)
+NMXTimeOrderedBuffer::NMXTimeOrderedBuffer(NMXClusterManager &clusterManager, NMXClusterPairing &clusterPairing)
         : m_verbose_level(0),
           m_i1(nmx::MINOR_BITMASK),
-          m_nB(0),
-          m_nC(0),
-          m_nD(0),
-          m_time(0),
-          m_new_inserted(false),
+//          m_nB(0),
+//          m_nC(0),
+//          m_nD(0),
+          m_currentTime(0),
+          m_pointProcessed(true),
           m_terminate(false),
-          m_clusterManager(clusterManager)
+          m_clusterManager(clusterManager),
+          m_clusterPairing(clusterPairing)
 {
     //checkBitSum();
     //printInitialization();
@@ -31,23 +32,19 @@ NMXTimeOrderedBuffer::~NMXTimeOrderedBuffer()
     // Join threads
     pro.join();
 }
-/*
-bool NMXTimeOrderedBuffer::addDataPoint(uint32_t strip, uint32_t time, uint32_t charge) {
 
-    nmx::data_point point = {strip, charge, time};
+void NMXTimeOrderedBuffer::insert(unsigned int plane, unsigned int idx, uint32_t time) {
 
-    return insert(0, 0);
-}
-*/
-bool NMXTimeOrderedBuffer::insert(int idx, int time) {
-
-    while (m_new_inserted)
+    while (!m_pointProcessed)
         std::this_thread::yield();
 
-    m_new_inserted = true;
-    m_newIdx = idx;
-    m_time = time;
+    m_pointProcessed = false;
+    m_currentPlane = plane;
+    m_currentIdx = idx;
+    m_currentTime = time;
 }
+
+
 
 void NMXTimeOrderedBuffer::producer() {
 
@@ -55,7 +52,7 @@ void NMXTimeOrderedBuffer::producer() {
 
     while(1) {
 
-        while (!m_new_inserted) {
+        while (m_pointProcessed) {
             if (m_terminate) {
                 std::cout << "Stopped sorting thread!\n";
                 return;
@@ -63,43 +60,32 @@ void NMXTimeOrderedBuffer::producer() {
             std::this_thread::yield();
         }
 
-        uint minorTime = getMinorTime(m_time);
-        uint majorTime = getMajorTime(m_time);
+        uint minorTime = getMinorTime(m_currentTime);
+        uint majorTime = getMajorTime(m_currentTime);
 
         if (m_verbose_level > 1) {
-            std::cout << "Idx = " << m_newIdx << ", B1 = " << minorTime << ", B2 = " << majorTime << ", B2_buffer[" << minorTime << "] = "
-                      << m_majortime_buffer[minorTime] << " B2_buffer[0] = " << m_majortime_buffer.at(0)
-                      << " i1 = " << m_i1 << std::endl;
+            std::cout << "Idx = " << m_currentIdx << ", B1 = " << minorTime << ", B2 = " << majorTime << ", B2_buffer["
+                      << minorTime << "] = " << m_majortime_buffer[minorTime] << " B2_buffer[0] = "
+                      << m_majortime_buffer.at(0) << " i1 = " << m_i1 << std::endl;
         }
 
         if (majorTime >= (m_majortime_buffer.at(0) + 1)) {
 
-            if (majorTime == (m_majortime_buffer.at(0) + 1) && minorTime <= m_i1) {
+            if (majorTime == (m_majortime_buffer.at(0) + 1)) {
 
-                if (m_verbose_level > 0) {
+                if (m_verbose_level > 0)
                     std::cout << "Case 1\n";
-                    std::cout << "Moving " << nmx::MINOR_BITMASK - m_i1 + std::min(m_i1, minorTime) + 1 << " points\n";
-                }
 
-                //guardB();
-                moveToClusterer(nmx::MINOR_BITMASK - m_i1 + std::min(m_i1, minorTime) + 1, minorTime, majorTime);
-                addToBuffer(m_newIdx, minorTime);
+                slideTimeWindow(nmx::MINOR_BITMASK - m_i1 + std::min(m_i1, minorTime) + 1, minorTime, majorTime);
+                addToBuffer(m_currentIdx, minorTime);
 
             } else { // majorTime > (m_majortime_buffer.at(0) + 1)
 
-                if (m_verbose_level > 0) {
+                if (m_verbose_level > 0)
                     std::cout << "Case 2\n";
-                    std::cout << "Moving " << nmx::MINOR_BITMASK << " points\n";
-                }
 
-                moveToClusterer(nmx::MINOR_BITMASK + 1, minorTime, majorTime);
-                addToBuffer(m_newIdx, minorTime);
-
-                guardB();
-                m_nD = 1;
-                m_nC = minorTime+1;
-                m_nB = minorTime+1;
-                m_nD = 0;
+                slideTimeWindow(nmx::MINOR_BITMASK + 1, minorTime, majorTime);
+                addToBuffer(m_currentIdx, minorTime);
             }
 
         } else { // majorTime <= m_buffer.at(0)
@@ -108,15 +94,11 @@ void NMXTimeOrderedBuffer::producer() {
 
                 case 1:
 
-                    if (m_verbose_level > 0) {
+                    if (m_verbose_level > 0)
                         std::cout << "Case 3\n";
-                        std::cout << "nB = " << m_nB << ", nC = " << m_nC << std::endl;
-                        std::cout << "Moving " << minorTime - m_i1 << " points\n";
-                        std::cout << "Minor-time = " << minorTime << ", i1 = " << m_i1 << std::endl;
-                    }
 
-                    moveToClusterer(minorTime - m_i1, minorTime, majorTime);
-                    addToBuffer(m_newIdx, minorTime);
+                    slideTimeWindow(minorTime - m_i1, minorTime, majorTime);
+                    addToBuffer(m_currentIdx, minorTime);
 
                     break;
 
@@ -125,17 +107,18 @@ void NMXTimeOrderedBuffer::producer() {
                     if (m_verbose_level > 0)
                         std::cout << "Case 4\n";
 
-                    addToBuffer(m_newIdx, minorTime);
+                    addToBuffer(m_currentIdx, minorTime);
 
                     break;
 
                 default:
 
                     std::cout << "Old data-point - omitting!\n";
+                    m_clusterManager.returnClusterToStack(m_currentPlane, m_currentIdx);
             }
         }
 
-        m_new_inserted = false;
+        m_pointProcessed = true;
     }
 }
 
@@ -153,30 +136,35 @@ nmx::cluster_queue NMXTimeOrderedBuffer::getNextSorted() {
 
     buf.at(0) = -1;
     buf.at(1) = -1;
-    m_nC++;
+    //m_nC++;
 
     return ret_buf;
 }
 
 void NMXTimeOrderedBuffer::addToBuffer(int idx, uint minorTime) {
 
-    uint32_t i0 = m_SortQ[minorTime];
+   // uint32_t i0 = m_SortQ[minorTime];
 
-    std::array<nmx::cluster_queue, nmx::MAX_MINOR> &tbuf = m_time_ordered_buffer.at(i0);
-    nmx::cluster_queue &queue = tbuf.at(minorTime);
+    nmx::cluster_queue &queue = m_time_ordered_buffer.at(minorTime);
 
-    int plane = m_clusterManager.getCluster(idx).box.plane;
+    std::cout << "<NMXTimeOrderedBuffer::addToBuffer> Cluster " << idx << " from plane "
+              << m_currentPlane  << " will be inserted at " << minorTime
+              << ", queue[0] = " << queue.at(0) << ", queue[1] = " << queue.at(1) << ", link1 = "
+              << m_clusterManager.getCluster(m_currentPlane, idx).box.link1 << ", link2 = "
+              << m_clusterManager.getCluster(m_currentPlane, idx).box.link2 << std::endl;
 
-    if (queue.at(plane) == -1)
-        queue.at(plane) = idx;
-
-    else {
+    if (queue.at(m_currentPlane) == -1) {
+        queue.at(m_currentPlane) = idx;
+        std::cout << "First cluster!\n";
+    } else {
 
         bool cont = true;
 
         while (cont) {
 
-            nmx::cluster &nextCluster = m_clusterManager.getCluster(idx);
+            std::cout << "Inserting in queue\n";
+
+            nmx::cluster &nextCluster = m_clusterManager.getCluster(m_currentPlane, idx);
 
             int nextIdx = nextCluster.box.link1;
 
@@ -187,9 +175,10 @@ void NMXTimeOrderedBuffer::addToBuffer(int idx, uint minorTime) {
             }
         }
     }
+    nmx::printQueue(m_currentPlane, queue.at(m_currentPlane), m_clusterManager);
 }
 
-void NMXTimeOrderedBuffer::moveToClusterer(uint d, uint minorTime, uint majorTime) {
+void NMXTimeOrderedBuffer::slideTimeWindow(uint d, uint minorTime, uint majorTime) {
 
     //if (!nmx::checkD(d, "NMXTimeOrderedBuffer::moveToClusterer"))
       //  throw 1;
@@ -201,34 +190,21 @@ void NMXTimeOrderedBuffer::moveToClusterer(uint d, uint minorTime, uint majorTim
         std::cout << s;
     }
 
-    //guardB();
-    while (m_nB - m_nC > nmx::MINOR_BITMASK - d)
-        std::this_thread::yield();
 
     for (uint i = 0; i < d; ++i) {
 
-        uint idx = (i+m_nB)%nmx::MAX_MINOR;
+        uint idx = (i+m_i1)%nmx::MAX_MINOR;
 
         if (m_verbose_level > 1)
             std::cout << "Moving cluster with idx " << idx << std::endl;
 
-        if (m_time_ordered_buffer.at(m_ClusterQ[idx]).at(idx).at(0) != -1 &&
-                m_time_ordered_buffer.at(m_ClusterQ[idx]).at(idx).at(1) != -1) {
-            std::cout << "Buffer not empty!!!!!!!!!!!!!!!!!!!!\n";
-            std::cout << "nB = " << m_nB << std::endl;
-            std::cout << "nC = " << m_nC << std::endl;
-        }
-
-        m_SortQ[idx]    = m_ClusterQ[idx];
-        m_ClusterQ[idx] = !m_SortQ[idx];
+        m_clusterPairing.
 
         if (idx <= minorTime)
             m_majortime_buffer.at(idx) = majorTime;
         else
             m_majortime_buffer.at(idx) = majorTime -1;
     }
-
-    m_nB += d;
 
     if (m_verbose_level > 1)
         std::cout << "Setting i1 to " << minorTime << std::endl;
@@ -250,7 +226,7 @@ void NMXTimeOrderedBuffer::endRun() {
         std::this_thread::yield();
     }
 
-    moveToClusterer(nmx::MINOR_BITMASK, nmx::MINOR_BITMASK, 0);
+    slideTimeWindow(nmx::MINOR_BITMASK, nmx::MINOR_BITMASK, 0);
 
     while (m_nB != m_nC) {
         if (verbose)

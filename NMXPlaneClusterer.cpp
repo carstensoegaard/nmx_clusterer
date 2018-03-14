@@ -15,6 +15,8 @@ NMXPlaneClusterer::NMXPlaneClusterer(NMXClusterManager &clusterManager, NMXClust
       m_nB(0),
       m_nC(0),
       m_nD(0),
+      m_latestClusterTime(0),
+      //m_nInserted(0),
       m_plane(-1),
       m_new_point(false),
       m_clusterManager(clusterManager),
@@ -56,8 +58,6 @@ bool NMXPlaneClusterer::addDataPoint(const nmx::data_point &point) {
 
     m_point_buffer = point;
     m_new_point = true;
-
-    //std::cout << "NMXPlaneClusterer::addDataPoint> Added point to plane " << m_plane << std::endl;
 }
 
 void NMXPlaneClusterer::producer() {
@@ -86,14 +86,13 @@ void NMXPlaneClusterer::producer() {
 
         if (majorTime >= (m_majortime_buffer.at(0) + 1)) {
 
-            if (majorTime == (m_majortime_buffer.at(0) + 1)) {
+            if (majorTime == (m_majortime_buffer.at(0) + 1) && minorTime <= m_i1) {
 
                 if (m_verbose_level > 0) {
                     std::cout << "Case 1\n";
                     std::cout << "Moving " << nmx::MINOR_BITMASK - m_i1 + std::min(m_i1, minorTime) +1 << " points\n";
                 }
 
-                //guardB();
                 moveToClusterer(nmx::MINOR_BITMASK - m_i1 + std::min(m_i1, minorTime) + 1, minorTime, majorTime);
                 addToBuffer(m_point_buffer, minorTime);
 
@@ -104,7 +103,6 @@ void NMXPlaneClusterer::producer() {
                     std::cout << "Moving " << nmx::MINOR_BITMASK << " points\n";
                 }
 
-                //guardB();
                 moveToClusterer(nmx::MINOR_BITMASK+1, minorTime, majorTime);
                 addToBuffer(m_point_buffer, minorTime);
 
@@ -173,9 +171,14 @@ void NMXPlaneClusterer::consumer() {
             std::this_thread::yield();
         }
 
+        if (m_nC % nmx::NCLEANUP == 0)
+            checkBoxes();
+
         uint idx = m_nC % nmx::MAX_MINOR;
 
         nmx::buffer &buf = m_time_ordered_buffer.at(m_ClusterQ[idx]).at(idx);
+
+        m_latestClusterTime = ((m_majortime_buffer.at(idx) << nmx::CLUSTER_MINOR_BITS) + idx) << nmx::IGNORE_BITS;
 
         for (int ipoint = 0; ipoint < buf.npoints; ipoint++) {
 
@@ -298,9 +301,7 @@ void NMXPlaneClusterer::moveToClusterer(uint d, uint minorTime, uint majorTime) 
         std::cout << s;
     }
 
-    //guardB();
-    while (m_nB - m_nC > nmx::MINOR_BITMASK - d)
-        std::this_thread::yield();
+    guardB();
 
     for (uint i = 0; i < d; ++i) {
 
@@ -330,7 +331,7 @@ void NMXPlaneClusterer::moveToClusterer(uint d, uint minorTime, uint majorTime) 
         std::cout << "Setting i1 to " << minorTime << std::endl;
 
     m_i1 = minorTime;
-}
+ }
 
 uint NMXPlaneClusterer::checkMask(uint strip, int &lo_idx, int &hi_idx) {
 
@@ -366,10 +367,11 @@ bool NMXPlaneClusterer::newCluster(nmx::data_point &point) {
     if (!nmx::checkPoint(point, "NMXPlaneClusterer::newCluster"))
         return false;
 
-    int newbox = m_boxes.getBoxFromStack();
-    if ((newbox < 0) || (newbox > nmx::NBOXES -1)) {
+    unsigned int newbox = static_cast<unsigned int>(m_boxes.getBoxFromStack());
+    if (newbox > nmx::NBOXES -1) {
         std::cerr << "<NMXPlaneClusterer::newCluster> Got new box with # " << newbox << " which is not in range [0,"
                   << nmx::NBOXES -1 << "]\n";
+        return false;
     }
 
     if (m_verbose_level > 2)
@@ -526,6 +528,8 @@ bool NMXPlaneClusterer::flushCluster(const int boxid) {
 
     nmx::box box = m_boxes.getBox(boxid);
     produced_cluster.box = box;
+    produced_cluster.box.link1 = -1;
+    produced_cluster.box.link2 = -1;
 
     if (m_verbose_level > 2) {
         std::cout << "\nBox # " << boxid << ":\n";
@@ -553,24 +557,24 @@ bool NMXPlaneClusterer::flushCluster(const int boxid) {
             if (point.charge != 0) {
                 produced_cluster.data.at(produced_cluster.npoints) = point;
                 produced_cluster.npoints++;
-
             }
 
             point = {0, 0, 0};
         }
     }
-
-    m_mutex.lock();
-    int cluster_idx = m_clusterManager.getClusterFromStack();
-    m_clusterManager.getCluster(cluster_idx) = produced_cluster;
-    m_clusterParing.insertClusterInQueue(cluster_idx);
-    m_mutex.unlock();
+    /*
+    if (produced_cluster.npoints > 0) {
+        int cluster_idx = m_clusterManager.getClusterFromStack(m_plane);
+        m_clusterManager.getCluster(m_plane, cluster_idx) = produced_cluster;
+        m_clusterParing.insertClusterInQueue(m_plane, cluster_idx);
+    }
+*/
 
     m_boxes.releaseBox(boxid);
 
     if (m_verbose_level > 2)
         nmx::printMask(m_mask);
-}
+    }
 
 uint NMXPlaneClusterer::getLoBound(int strip) {
 
@@ -675,13 +679,39 @@ void NMXPlaneClusterer::reset() {
     }
 }
 
+void NMXPlaneClusterer::checkBoxes() {
+
+    int idx = m_boxes.getQueueTail();
+
+    if (m_verbose_level > 2)
+        std::cout << "<NMXPlaneClusterer::checkBoxes> Queue starts at " << idx << std::endl;
+
+    while (idx > 0) {
+
+        nmx::box &box = m_boxes.getBox(idx);
+
+        int diff = m_latestClusterTime - box.min_time;
+
+        if (m_verbose_level > 2)
+            std::cout << "Diff = " << m_latestClusterTime << " - " << box.min_time << " = " << diff;
+
+        if (diff > nmx::MAX_CLUSTER_TIME) {
+            if (m_verbose_level > 2)
+                std::cout << " which is larger than " << nmx::MAX_CLUSTER_TIME << " so flushing\n";
+            flushCluster(idx);
+        }
+
+        idx = box.link2;
+        if (m_verbose_level > 2)
+            std::cout << "Next idx is " << idx << std::endl;
+    }
+}
+
 void NMXPlaneClusterer::guardB() {
 
-    while (m_nB != m_nC/*m_nB - m_nC > nmx::MINOR_BITMASK*/) {
-
-        //std::this_thread::sleep_for(std::chrono::microseconds(1));
+    while (m_nB != m_nC)
         std::this_thread::yield();
-    }
+
 }
 
 void NMXPlaneClusterer::checkBitSum() {

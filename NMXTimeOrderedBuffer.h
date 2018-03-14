@@ -12,30 +12,20 @@
 #include "NMXClustererDefinitions.h"
 #include "NMXClustererHelper.h"
 #include "NMXClusterManager.h"
-//#include "NMXClusterPairing.h"
+#include "NMXClusterPairing.h"
 
-/*
-struct idx_buffer {
-    int nidx;
-    std::array<int, 100> data;
-};
-*/
 class NMXTimeOrderedBuffer {
 
 public:
 
-    NMXTimeOrderedBuffer(NMXClusterManager &clusterManager);
+    NMXTimeOrderedBuffer(NMXClusterManager &clusterManager, NMXClusterPairing &clusterPairing);
     ~NMXTimeOrderedBuffer();
 
-    bool insert(int idx, int time);
-    //bool addDataPoint(uint32_t strip, uint32_t time, uint32_t charge);
+    void insert(unsigned int plane, unsigned int idx, uint32_t time);
     nmx::cluster_queue getNextSorted();
-    //void consumer();
 
     void endRun();
     void terminate() { m_terminate = true; }
-
-    //std::vector<nmx::cluster>& getProducedClusters() { return m_produced_clusters; }
 
     void setVerboseLevel(uint level = 0) { m_verbose_level = level; }
 
@@ -46,43 +36,28 @@ private:
 
     uint m_i1;
 
-    uint32_t m_nB;
-    uint32_t m_nC;
-    uint32_t m_nD;
-
-    int m_newIdx;
-    int m_time;
-    bool m_new_inserted;
+    unsigned int m_currentPlane;
+    unsigned int m_currentIdx;
+    uint32_t m_currentTime;
+    bool m_pointProcessed;
     bool m_terminate;
 
     std::thread pro;
-//    std::thread con;
 
     void producer();
 
-
     NMXClusterManager &m_clusterManager;
-//    NMXClusterPairing &m_clusterParing;
-//    std::mutex& m_mutex;
-
-    /*
-    nmx::buffer_data m_cluster;
-    std::vector<nmx::cluster> m_produced_clusters;
-*/
+    NMXClusterPairing &m_clusterPairing;
 
     nmx::row_array m_majortime_buffer;
-    nmx::row_array m_SortQ;
-    nmx::row_array m_ClusterQ;
-    std::array<std::array<nmx::cluster_queue, nmx::MAX_MINOR>, 2> m_time_ordered_buffer;
-//    nmx::time_ordered_buffer m_time_ordered_buffer;
+
+    std::array<nmx::cluster_queue, nmx::MAX_MINOR> m_time_ordered_buffer;
 
     uint32_t getMinorTime(uint32_t time);
     uint32_t getMajorTime(uint32_t time);
 
     void addToBuffer(int idx, uint minorTime);
-    void moveToClusterer(uint d, uint minorTime, uint majorTime);
-
-    void guardB();
+    void slideTimeWindow(uint d, uint minorTime, uint majorTime);
 
     void reset();
 

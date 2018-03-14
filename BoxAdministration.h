@@ -17,19 +17,21 @@ public:
 
     // Stack operations
     int getBoxFromStack();
-    void returnBoxToStack(const uint &ibox);
+    void returnBoxToStack(unsigned int ibox);
 
     // Queue operations
-    void insertBoxInQueue(const uint &ibox);
+    void insertBoxInQueue(unsigned int ibox);
     void releaseBoxFromTail();
     void releaseBoxFromHead();
-    void releaseBoxFromMiddle(const uint &emptybox);
-    void releaseBox(const uint &ibox);
+    void releaseBoxFromMiddle(unsigned int emptybox);
+    void releaseBox(unsigned int ibox);
 
-    void updateBox(const int &boxid, const nmx::data_point &point);
-    bool checkBox(const int &boxid, const nmx::data_point &point);
+    void updateBox(unsigned int boxid, const nmx::data_point &point);
+    bool checkBox(unsigned int boxid, const nmx::data_point &point);
 
-    nmx::box &getBox(const int &boxid);
+    nmx::box &getBox(unsigned int boxid);
+
+    int getQueueTail() { return m_queueTail; }
 
     void printStack();
     void printQueue();
@@ -43,7 +45,7 @@ private:
 
     std::array<nmx::box, nmx::NBOXES> m_boxList;
 
-    void resetBox(const int &boxid);
+    void resetBox(unsigned int boxid);
     void init();
 };
 

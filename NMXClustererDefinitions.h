@@ -35,7 +35,7 @@ namespace nmx {
         std::array<int, 100> data;
     };
 
-    typedef std::array<unsigned int ,2> cluster_queue;
+    typedef std::array<int ,2> cluster_queue;
 
     struct QmatrixEntry {
         double Qval;
@@ -60,7 +60,7 @@ namespace nmx {
         uint32_t max_time;
         uint64_t chargesum;
         uint64_t maxcharge;
-        uint8_t  plane;
+   //     uint8_t  plane;
         int link1;
         int link2;
     };
@@ -84,10 +84,6 @@ namespace nmx {
         uint64_t npairs;
         std::array<clusterPair, 100> pairs;
     };
-
-
 }
-
-
 
 #endif //NMX_CLUSTER_DEFINITIONS_H

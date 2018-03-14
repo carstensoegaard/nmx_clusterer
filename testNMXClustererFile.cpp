@@ -53,7 +53,7 @@ int main() {
 
     EventManager evman;
 
-    int nrepeats = 1000;
+    int nrepeats = 1;
     int multiplier = 5;
 
     std::cout << "\nWill repeat " << events.size() << " events " << nrepeats << " times.\n";
@@ -110,7 +110,6 @@ int main() {
             }
             multiplier++;
         }
-
 
         repeat++;
     }

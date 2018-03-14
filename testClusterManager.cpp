@@ -17,18 +17,22 @@ int main() {
 
     NMXClusterManager cm;// = NMXClusterManager::getInstance();
 
-    cm.printStack();
+    cm.printStack(0);
 
-    for (uint i = 0; i < 15; i++) {
+    int plane = 0;
+
+    for (uint i = 0; i < 10; i++) {
 
 
         std::cout << "i = " << i << std::endl;
 
-        int idx = cm.getClusterFromStack();
+        int idx = cm.getClusterFromStack(plane);
+
+        std::cout << "Got cluster with idx = " << idx << std::endl;
 
         if (idx >= 0)
             clusters.push_back(idx);
-        cm.printStack();
+        cm.printStack(plane);
     }
 
     while (!clusters.empty()) {
@@ -37,22 +41,22 @@ int main() {
         int clusteridx = clusters.at(idx);
         std::cout << "Returning cluster # " << clusteridx << std::endl;
 
-        cm.returnClusterToStack(clusteridx);
-        cm.printStack();
+        cm.returnClusterToStack(plane, clusteridx);
+        cm.printStack(plane);
 
         clusters.erase(clusters.begin()+idx);
     }
 
-    for (uint i = 0; i < 15; i++) {
+    for (uint i = 0; i < 10; i++) {
 
 
         std::cout << "i = " << i << std::endl;
 
-        int idx = cm.getClusterFromStack();
+        int idx = cm.getClusterFromStack(plane);
 
         if (idx >= 0)
             clusters.push_back(idx);
-        cm.printStack();
+        cm.printStack(plane);
     }
 
     while (!clusters.empty()) {
@@ -61,8 +65,8 @@ int main() {
         int clusteridx = clusters.at(idx);
         std::cout << "Returning cluster # " << clusteridx << std::endl;
 
-        cm.returnClusterToStack(clusteridx);
-        cm.printStack();
+        cm.returnClusterToStack(plane, clusteridx);
+        cm.printStack(plane);
 
         clusters.erase(clusters.begin()+idx);
     }

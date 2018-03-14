@@ -5,6 +5,7 @@
 #ifndef PROJECT_NMXCLUSTERMANAGER_H
 #define PROJECT_NMXCLUSTERMANAGER_H
 
+#include <array>
 
 #include "NMXClustererDefinitions.h"
 
@@ -14,41 +15,36 @@ public:
 
     NMXClusterManager();
 
-    //~NMXClusterManager() = default;
+    int getClusterFromStackX();
+    int getClusterFromStackY();
+    int getClusterFromStack(unsigned int plane);
 
-    /*static NMXClusterManager& getInstance() {
-        static NMXClusterManager instance;
+    void returnClusterToStackX(unsigned int idx);
+    void returnClusterToStackY(unsigned int idx);
+    void returnClusterToStack(unsigned int plane, unsigned int idx);
 
-        return instance;
-    }*/
+    int getLink1(unsigned int plane, unsigned int idx);
+    int getLink2(unsigned int plane, unsigned int idx);
 
-    int getClusterFromStack();
-    void returnClusterToStack(int idx);
+    bool setLink1(unsigned int plane, unsigned int idx, int link1);
+    bool setLink2(unsigned int plane, unsigned int idx, int link1);
 
-    void insertClusterInQueue(uint idx);
+    nmx::cluster &getClusterX(unsigned int idx);
+    nmx::cluster &getClusterY(unsigned int idx);
+    nmx::cluster &getCluster(unsigned int plane, unsigned int idx);
 
-    int getNextFormQueue();
-
-    nmx::cluster& getCluster(uint idx);
-
-    void printStack();
+    void printStack(unsigned int plane);
 
 private:
 
+    std::array<int, 2> m_stackHead;
+    std::array<int, 2> m_stackTail;
 
-    int m_stackHead;
-    int m_stackTail;
+    std::array<int, 2> m_queueHead;
+    std::array<int, 2> m_queueTail;
 
-    int m_queueHead;
-    int m_queueTail;
+    std::array<nmx::cluster_buffer, 2> m_buffer;
 
-    nmx::cluster_buffer m_buffer;
-
-    /*
-    NMXClusterManager();// = default;
-    NMXClusterManager(const NMXClusterManager&) = delete;
-    NMXClusterManager& operator=(const NMXClusterManager&) = delete;
-*/
     void init();
 };
 

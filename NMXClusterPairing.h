@@ -8,14 +8,6 @@
 #include "NMXClustererDefinitions.h"
 #include "NMXClusterManager.h"
 #include "NMXTimeOrderedBuffer.h"
-/*
-struct buffer {
-    uint32_t npoints;
-    std::array<int, nmx::NCLUSTERS> data;
-};
-*/
-
-
 
 class NMXClusterPairing {
 
@@ -24,20 +16,21 @@ public:
     NMXClusterPairing(NMXClusterManager &clusterManager);
     ~NMXClusterPairing();
 
-    void insertClusterInQueue(unsigned int idx);
+    void insertClusterInQueue(int plane, unsigned int idx);
+    void insertClusterInQueueX(unsigned int idx);
+    void insertClusterInQueueY(unsigned int idx);
 
-   // pair_buffer pair(nmx::idx_buffer &buf, nmx::idx_buffer &prevbuf);
+    void terminate() { m_terminate = true; }
 
-private:
+   private:
 
-    std::thread m_process;
+    std::array<unsigned int, nmx::CLUSTER_BUFFER_SIZE> m_xQueue;
+    std::array<unsigned int, nmx::CLUSTER_BUFFER_SIZE> m_yQueue;
 
-    NMXTimeOrderedBuffer m_time_ordered_buffer;
-    //NMXTimeOrderedBuffer m_time_ordered_buffer;
-
-    NMXClusterManager &m_cluster_manager;
-
-    std::array<bool, nmx::NCLUSTERS> m_used;
+    unsigned int m_nInX;
+    unsigned int m_nOutX;
+    unsigned int m_nInY;
+    unsigned int m_nOutY;
 
     unsigned int m_nXcurrent;
     unsigned int m_nYcurrent;
@@ -46,15 +39,21 @@ private:
 
     nmx::Qmatrix m_Qmatrix;
 
+    bool m_switch;
     bool m_terminate;
+
+    NMXTimeOrderedBuffer m_time_ordered_buffer;
+    NMXClusterManager &m_cluster_manager;
+    std::thread m_tinsert;
+    std::thread m_tprocess;
 
     void calculateQmatrix(nmx::cluster_queue &current, nmx::cluster_queue &previous);
 
-    unsigned int getQueueLength(unsigned int idx);
+    unsigned int getQueueLength(unsigned int plane, int idx);
 
-    nmx::idx_buffer addBuffers(nmx::idx_buffer &b1, nmx::idx_buffer &b2);
+    void insert();
     void process();
-    void reset(uint n);
+   // void reset(uint n);
 };
 
 #endif //PROJECT_PAIRCLUSTERS_H

@@ -48,6 +48,10 @@ private:
     uint32_t m_nC;
     uint32_t m_nD;
 
+    uint32_t m_latestClusterTime;
+
+    //unsigned int m_nInserted;
+
     int m_plane;
 
     std::thread pro;
@@ -58,7 +62,6 @@ private:
     NMXClusterManager &m_clusterManager;
     NMXClusterPairing &m_clusterParing;
     std::mutex& m_mutex;
-
 
     bool m_terminate;
 
@@ -89,6 +92,8 @@ private:
     bool flushCluster(int boxid);
     uint getLoBound(int strip);
     uint getHiBound(int strip);
+
+    void checkBoxes();
 
     void guardB();
 

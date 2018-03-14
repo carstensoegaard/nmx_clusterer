@@ -11,6 +11,7 @@
 
 #include "NMXClustererDefinitions.h"
 #include "BoxAdministration.h"
+#include "NMXClusterManager.h"
 
 namespace nmx {
 
@@ -201,9 +202,18 @@ namespace nmx {
 
     //*****************************************************************************************************************
 
+    static void printQueue(unsigned int plane, int idx, NMXClusterManager manager) {
 
+        if (idx < 0)
+            std::cout << "Empty queue!\n";
 
-
+        std::cout << "Queue: ";
+        while (idx >= 0) {
+            std::cout << idx << " -> ";
+            idx = manager.getLink1(plane, idx);
+        }
+        std::cout << "\n";
+    }
 }
 
 #endif //PROJECT_NMXCLUSTERERDEBUGINFO_H

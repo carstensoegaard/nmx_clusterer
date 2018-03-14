@@ -5,10 +5,10 @@ set(CMAKE_BUILD_TYPE debug)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-set(NMX_CLUSTERER_SOURCES BoxAdministration.cpp NMXClusterManager.cpp NMXTimeOrderedBuffer.cpp NMXClusterer.cpp
+set(NMX_CLUSTERER_SOURCES BoxAdministration.cpp NMXClusterManager.cpp NMXClusterer.cpp
         NMXClusterPairing.cpp NMXPlaneClusterer.cpp NMXLocationFinder.cpp)
 set(NMX_CLUSTERER_HEADERS NMXClustererSettings.h NMXClustererDefinitions.h BoxAdministration.h NMXClusterManager.h
-        NMXTimeOrderedBuffer.h NMXPlaneClusterer.h NMXClusterPairing.h NMXLocationFinder.h)
+        NMXPlaneClusterer.h NMXClusterPairing.h NMXLocationFinder.h)
 add_library(libnmx ${NMX_CLUSTERER_SOURCES} ${NMX_CLUSTERER_HEADERS} NMXClusterer.cpp NMXClusterer.h)
 
 set(NMX_HELPER_SOURCES SpecialDataReader.cpp EventManager.cpp)

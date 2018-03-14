@@ -38,7 +38,7 @@ namespace nmx {
     const unsigned int CLUSTER_MAJOR_BITS  = 20;
 
     const unsigned int NCLUSTER_POINTS = 10;
-    const unsigned int NCLUSTERS = 50;
+    const unsigned int NCLUSTERS = 100;
     const unsigned int CLUSTER_BUFFER_SIZE = 100;
 
     const unsigned int MAX_CLUSTER_TIME_DIFF = 32;

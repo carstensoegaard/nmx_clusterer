@@ -22,9 +22,9 @@ int main() {
 
     srand(1);
 
-    uint32_t nspertimebin = 32;
-    uint32_t maxbinsperevent = 30;
-    uint32_t maxtimeperevent = nspertimebin*maxbinsperevent*2;
+    unsigned int nspertimebin = 32;
+    unsigned int maxbinsperevent = 30;
+    unsigned int maxtimeperevent = nspertimebin*maxbinsperevent*2;
 
     std::mutex m;
     NMXClusterer c;
@@ -53,7 +53,7 @@ int main() {
 
     EventManager evman;
 
-    int nrepeats = 1;
+    int nrepeats = 3;
     int multiplier = 5;
 
     std::cout << "\nWill repeat " << events.size() << " events " << nrepeats << " times.\n";

@@ -204,8 +204,10 @@ namespace nmx {
 
     static void printQueue(unsigned int plane, int idx, NMXClusterManager manager) {
 
-        if (idx < 0)
+        if (idx < 0) {
             std::cout << "Empty queue!\n";
+            return;
+        }
 
         std::cout << "Queue: ";
         while (idx >= 0) {

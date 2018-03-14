@@ -562,13 +562,13 @@ bool NMXPlaneClusterer::flushCluster(const int boxid) {
             point = {0, 0, 0};
         }
     }
-    /*
+
     if (produced_cluster.npoints > 0) {
         int cluster_idx = m_clusterManager.getClusterFromStack(m_plane);
         m_clusterManager.getCluster(m_plane, cluster_idx) = produced_cluster;
         m_clusterParing.insertClusterInQueue(m_plane, cluster_idx);
     }
-*/
+
 
     m_boxes.releaseBox(boxid);
 

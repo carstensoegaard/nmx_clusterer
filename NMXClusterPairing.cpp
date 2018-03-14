@@ -2,140 +2,249 @@
 // Created by soegaard on 1/31/18.
 //
 
+#include <iostream>
 #include <iomanip>
+
 #include "NMXLocationFinder.h"
+#include "NMXClustererHelper.h"
 
 NMXClusterPairing::NMXClusterPairing(NMXClusterManager &clusterManager)
-        : m_nInX(0),
-          m_nOutX(0),
-          m_nInY(0),
-          m_nOutY(0),
+        : m_i1(nmx::MAX_MINOR),
           m_nXcurrent(0),
           m_nYcurrent(0),
-          m_nXprevious(0),
-          m_nYprevious(0),
-          m_switch(true),
+          m_nXnext(0),
+          m_nYnext(0),
+          m_verbose_level(1),
           m_terminate(false),
-          m_cluster_manager(clusterManager),
-          m_time_ordered_buffer(clusterManager, this)
+          m_clusterManager(clusterManager)
 {
-    m_time_ordered_buffer.setVerboseLevel(0);
+    reset();
 
     m_tinsert = std::thread(&NMXClusterPairing::insert, this);
-    m_tprocess = std::thread(&NMXClusterPairing::process, this);
+   // m_tprocess = std::thread(&NMXClusterPairing::process, this);
 }
 
 NMXClusterPairing::~NMXClusterPairing() {
 
     m_tinsert.join();
-    m_tprocess.join();
+    //m_tprocess.join();
 }
 
-void NMXClusterPairing::insertClusterInQueue(int plane, unsigned int idx) {
+void NMXClusterPairing::insertClusterInQueue(int plane, unsigned int cluster_idx) {
 
-    if (m_cluster_manager.getCluster(plane, idx).npoints == 0)
+    if (m_clusterManager.getCluster(plane, cluster_idx).npoints == 0)
         std::cout << "<NMXClusterPairing::insertClusterInQueue> For some perculiar reason this cluster is empty!\n";
 
-    nmx::cluster &cluster = m_cluster_manager.getCluster(plane, idx);
+    nmx::cluster &cluster = m_clusterManager.getCluster(plane, cluster_idx);
     if ((cluster.box.link1 != -1) || (cluster.box.link2 != -1))
-        std::cout << "<NMXClusterPairing::insertClusterInQueue> Cluster " << idx << " from plane " << plane
+        std::cout << "<NMXClusterPairing::insertClusterInQueue> Cluster " << cluster_idx << " from plane " << plane
                   << " Link1 = " << cluster.box.link1 << ", link2 = " << cluster.box.link2 << std::endl;
-
-    switch (plane) {
-
-        case 0:
-            insertClusterInQueueX(idx);
-            break;
-        case 1:
-            insertClusterInQueueY(idx);
-            break;
-        default:
-        std::cerr << "<NMXClusterPairing::insertClusterInQueue> Plane " << plane << " has no meaning!\n";
-    }
-}
-
-void NMXClusterPairing::insertClusterInQueueX(unsigned int cluster_idx) {
 
     if (cluster_idx > nmx::NCLUSTERS) {
         std::cout << "<NMXClusterPairing::insertClusterInQueueX> Index " << cluster_idx << " out of range!\n";
         throw 1;
     }
 
-  /*  std::cout << "Will attempt to insert cluster " << cluster_idx << std::endl;
-    std::cout << "Before: InX = " << m_nInX << ", OutX = " << m_nOutX << std::endl;
-    std::cout << "Diff = " << m_nInX - m_nOutX << " to large ? "
-              << ((m_nInX - m_nOutX > nmx::CLUSTER_BUFFER_SIZE) ? "Yes\n" : "No\n");*/
-    while (m_nInX - m_nOutX > nmx::CLUSTER_BUFFER_SIZE) {
-        std::this_thread::yield();
-    }
-
-    unsigned int buffer_idx = m_nInX % nmx::CLUSTER_BUFFER_SIZE;
-    m_xQueue.at(buffer_idx) = cluster_idx;
-    m_nInX++;
-
-    /*
-    std::cout << "<NMXClusterPairing::insertClusterInQueueX> Inserted cluster " << cluster_idx << " at " << buffer_idx
-              << std::endl;
-    std::cout << "After: InX = " << m_nInX << ", OutX = " << m_nOutX << std::endl;
-*/
-}
-
-void NMXClusterPairing::insertClusterInQueueY(unsigned int cluster_idx) {
-
-    if (cluster_idx > nmx::NCLUSTERS) {
-        std::cout << "<NMXClusterPairing::insertClusterInQueueY> Index " << cluster_idx << " out of range!\n";
-        throw 1;
-    }
-
-    while (m_nInY - m_nOutY > nmx::CLUSTER_BUFFER_SIZE)
+    while (m_nIn.at(plane) - m_nOut.at(plane) > nmx::CLUSTER_BUFFER_SIZE)
         std::this_thread::yield();
 
-    unsigned int buffer_idx = m_nInY % nmx::CLUSTER_BUFFER_SIZE;
-    m_yQueue.at(buffer_idx) = cluster_idx;
-    m_nInY++;
+    unsigned int buffer_idx = m_nIn.at(plane) % nmx::CLUSTER_BUFFER_SIZE;
+    m_queue.at(plane).at(buffer_idx) = cluster_idx;
+    std::cout << "<NMXClusterPairing::insertClusterInQueue> Inserted index " << cluster_idx << " at " << buffer_idx
+              << " in plane " << plane << std::endl;
+    m_nIn.at(plane)++;
 }
 
 void NMXClusterPairing::insert() {
 
+    unsigned int plane = 0;
+
     while (1) {
 
-        if ((m_nInX == m_nOutX) && (m_nInY == m_nOutY))
+        while ((m_nIn.at(0) == m_nOut.at(0)) && (m_nIn.at(1) == m_nOut.at(1)))
             std::this_thread::yield();
 
-        if (m_switch) {
-            if (m_nInX > m_nOutX) {
-                unsigned int buffer_idx = m_nOutX % nmx::CLUSTER_BUFFER_SIZE;
-                unsigned int cluster_idx = m_xQueue.at(buffer_idx);
-                uint32_t time = m_cluster_manager.getCluster(0, cluster_idx).box.max_time;
+        if (m_nIn.at(plane) > m_nOut.at(plane)) {
 
-                m_time_ordered_buffer.insert(0, cluster_idx, time);
-                m_nOutX++;
-                /*std::cout << "<NMXClusterPairing::insert> Inserted X cluster " << cluster_idx << " from " << buffer_idx
-                          << std::endl;*/
-            }
-        } else {
-            if (m_nInY > m_nOutY) {
-                unsigned int buffer_idx = m_nOutY % nmx::CLUSTER_BUFFER_SIZE;
-                unsigned int cluster_idx = m_yQueue.at(buffer_idx);
-                uint32_t time = m_cluster_manager.getCluster(1, cluster_idx).box.max_time;
+            unsigned int buffer_idx = m_nOut.at(plane) % nmx::CLUSTER_BUFFER_SIZE;
+            unsigned int cluster_idx = m_queue.at(plane).at(buffer_idx);
+            uint32_t time = m_clusterManager.getCluster(plane, cluster_idx).box.max_time;
 
-                m_time_ordered_buffer.insert(1, cluster_idx, time);
-                m_nOutY++;
-                /*std::cout << "<NMXClusterPairing::insert> Inserted Y cluster " << cluster_idx << " from " << buffer_idx
-                          << std::endl;*/
+            uint32_t minorTime = getMinorTime(time);
+            uint32_t majorTime = getMajorTime(time);
+
+            std::cout << "<NMXClusterPairing::insert> Got idx " << cluster_idx << " from " << buffer_idx << std::endl;
+            std::cout << "Time = " << time << ", B1 = " << minorTime << ", B2 = " << majorTime << ", B2_buffer["
+                          << minorTime << "] = " << m_majortime_buffer[minorTime] << " B2_buffer[0] = "
+                          << m_majortime_buffer.at(0) << " i1 = " << m_i1 << std::endl;
+
+            if (majorTime >= (m_majortime_buffer.at(0) + 1)) {
+
+                if (majorTime == (m_majortime_buffer.at(0) + 1)) {
+
+                    if (m_verbose_level > 0)
+                        std::cout << "Case 1\n";
+
+                    slideTimeWindow(nmx::MINOR_BITMASK - m_i1 + std::min(m_i1, minorTime) + 1, minorTime, majorTime);
+                    addToBuffer(plane, cluster_idx, minorTime);
+
+                } else { // majorTime > (m_majortime_buffer.at(0) + 1)
+
+                    if (m_verbose_level > 0)
+                        std::cout << "Case 2\n";
+
+                    slideTimeWindow(nmx::MINOR_BITMASK + 1, minorTime, majorTime);
+                    addToBuffer(plane, cluster_idx, minorTime);
+                }
+
+            } else { // majorTime <= m_buffer.at(0)
+
+                switch (majorTime - m_majortime_buffer.at(minorTime)) {
+
+                    case 1:
+
+                        if (m_verbose_level > 0)
+                            std::cout << "Case 3\n";
+
+                        slideTimeWindow(minorTime - m_i1, minorTime, majorTime);
+                        addToBuffer(plane, cluster_idx, minorTime);
+
+                        break;
+
+                    case 0:
+
+                        if (m_verbose_level > 0)
+                            std::cout << "Case 4\n";
+
+                        addToBuffer(plane, cluster_idx, minorTime);
+
+                        break;
+
+                    default:
+
+                        std::cout << "Old data-point - omitting!\n";
+                        m_clusterManager.returnClusterToStack(plane, cluster_idx);
+                }
             }
+
+            m_nOut.at(plane)++;
         }
 
-        m_switch = !m_switch;
+        plane = !plane;
 
         if (m_terminate)
             return;
     }
 }
 
+void NMXClusterPairing::addToBuffer(unsigned int plane, int idx, uint minorTime) {
+
+    nmx::cluster_queue &queue = m_time_ordered_buffer.at(minorTime);
+
+    if (queue.at(plane) == -1) {
+        queue.at(plane) = idx;
+        std::cout << "First cluster!\n";
+    } else {
+
+        bool cont = true;
+
+        while (cont) {
+
+            std::cout << "Inserting in queue\n";
+
+            nmx::cluster &nextCluster = m_clusterManager.getCluster(plane, idx);
+
+            int nextIdx = nextCluster.box.link1;
+
+            if (nextIdx == -1) {
+
+                nextCluster.box.link1 = idx;
+                cont = false;
+            }
+        }
+    }
+    nmx::printQueue(plane, queue.at(plane), m_clusterManager);
+}
+
+void NMXClusterPairing::slideTimeWindow(uint d, uint minorTime, uint majorTime) {
+
+    //if (!nmx::checkD(d, "NMXTimeOrderedBuffer::moveToClusterer"))
+    //  throw 1;
+
+    if (m_verbose_level > 0) {
+        std::string s("\nWill move ");
+        s.append(std::to_string(d));
+        s.append(" entries to clusterer !\n");
+        std::cout << s;
+    }
+
+    for (uint i = 0; i < d; ++i) {
+
+        unsigned int this_idx = (i+m_i1)%nmx::MAX_MINOR;
+        unsigned int next_idx = (i+1+m_i1)%nmx::MAX_MINOR;
+
+        nmx::cluster_queue &this_queue = m_time_ordered_buffer.at(this_idx);
+        nmx::cluster_queue &next_queue = m_time_ordered_buffer.at(next_idx);
+
+        if ((this_queue.at(0) != -1) ||
+                (this_queue.at(1) != -1) ||
+                (next_queue.at(0) != -1) ||
+                (next_queue.at(1) != -1)) {
+
+            std::cout << "i = " << i << ", this_idx = " << this_idx << ", next_idx = " << next_idx << std::endl;
+
+            std::cout << "This x-";
+            nmx::printQueue(0, this_queue.at(0), m_clusterManager);
+            std::cout << "This y-";
+            nmx::printQueue(1, this_queue.at(1), m_clusterManager);
+            std::cout << "Next x-";
+            nmx::printQueue(0, next_queue.at(0), m_clusterManager);
+            std::cout << "Next y-";
+            nmx::printQueue(1, next_queue.at(1), m_clusterManager);
+
+            calculateQmatrix(this_queue, next_queue);
+
+            std::cout << "Calculated the Qmatrix dim[ " << m_nXcurrent + m_nXnext << " , " << m_nYcurrent + m_nYnext
+                      << " ]\n";
+
+            returnQueueToStack(0, this_queue.at(0));
+            returnQueueToStack(1, this_queue.at(1));
+        }
+
+        this_queue.at(0) = -1;
+        this_queue.at(1) = -1;
+
+        if (this_idx <= minorTime)
+            m_majortime_buffer.at(this_idx) = majorTime;
+        else
+            m_majortime_buffer.at(this_idx) = majorTime -1;
+    }
+
+    if (m_verbose_level > 0)
+        std::cout << "Setting i1 to " << minorTime << std::endl;
+
+    nmx::printMajorTimeBuffer(m_majortime_buffer);
+
+    m_i1 = minorTime;
+}
+
+
+inline uint32_t NMXClusterPairing::getMinorTime(uint32_t time) {
+
+    time = time >> nmx::IGNORE_BITS;
+    time = time & nmx::MINOR_BITMASK;
+
+    return time;
+}
+
+inline uint32_t NMXClusterPairing::getMajorTime(uint32_t time) {
+
+    return time >> nmx::IGNORE_BITS >> nmx::MINOR_BITS;
+}
+/*
 void NMXClusterPairing::process() {
 
-    NMXLocationFinder finder(m_cluster_manager);
+    NMXLocationFinder finder(m_clusterManager);
 
     nmx::cluster_queue previous;
     previous.at(0) = -1;
@@ -153,9 +262,9 @@ void NMXClusterPairing::process() {
         //std::cout << " Got it!\n";
 
         std::cout << "Current x-";
-        nmx::printQueue(0, current.at(0), m_cluster_manager);
+        nmx::printQueue(0, current.at(0), m_clusterManager);
         std::cout << "Current y-";
-        nmx::printQueue(1, current.at(1), m_cluster_manager);
+        nmx::printQueue(1, current.at(1), m_clusterManager);
 
         calculateQmatrix(current, previous);
 
@@ -166,10 +275,10 @@ void NMXClusterPairing::process() {
         std::cout << "<NMXClusterPairing::process> Returning old clusters from X queue. Starting at " << idx << std::endl;
         while (idx >= 0) {
             //std::cout << "Getting next idx\n";
-            int next_idx = m_cluster_manager.getCluster(0, idx).box.link1;
+            int next_idx = m_clusterManager.getCluster(0, idx).box.link1;
             //std::cout << "Next idx = " << next_idx << std::endl;
             //std::cout << "Returning cluster " << idx << std::endl;
-            m_cluster_manager.returnClusterToStack(0, idx);
+            m_clusterManager.returnClusterToStack(0, idx);
             idx = next_idx;
         }
 
@@ -177,10 +286,10 @@ void NMXClusterPairing::process() {
         std::cout << "<NMXClusterPairing::process> Returning old clusters from Y queue. Starting at " << idx << std::endl;
         while (idx >= 0) {
             //std::cout << "Getting next idx\n";
-            int next_idx = m_cluster_manager.getCluster(1, idx).box.link1;
+            int next_idx = m_clusterManager.getCluster(1, idx).box.link1;
             //std::cout << "Next idx = " << next_idx << std::endl;
             //std::cout << "Returning cluster " << idx << std::endl;
-            m_cluster_manager.returnClusterToStack(1, idx);
+            m_clusterManager.returnClusterToStack(1, idx);
             idx = next_idx;
         }
 
@@ -188,10 +297,10 @@ void NMXClusterPairing::process() {
         std::cout << "<NMXClusterPairing::process> Returning clusters from X queue. Starting at " << idx << std::endl;
         while (idx >= 0) {
             //std::cout << "Getting next idx\n";
-            int next_idx = m_cluster_manager.getCluster(0, idx).box.link1;
+            int next_idx = m_clusterManager.getCluster(0, idx).box.link1;
             //std::cout << "Next idx = " << next_idx << std::endl;
             //std::cout << "Returning cluster " << idx << std::endl;
-            m_cluster_manager.returnClusterToStack(0, idx);
+            m_clusterManager.returnClusterToStack(0, idx);
             idx = next_idx;
         }
 
@@ -199,17 +308,17 @@ void NMXClusterPairing::process() {
         std::cout << "<NMXClusterPairing::process> Returning clusters from Y queue. Starting at " << idx << std::endl;
         while (idx >= 0) {
             //std::cout << "Getting next idx\n";
-            int next_idx = m_cluster_manager.getCluster(1, idx).box.link1;
+            int next_idx = m_clusterManager.getCluster(1, idx).box.link1;
             //std::cout << "Next idx = " << next_idx << std::endl;
             //std::cout << "Returning cluster " << idx << std::endl;
-            m_cluster_manager.returnClusterToStack(1, idx);
+            m_clusterManager.returnClusterToStack(1, idx);
             idx = next_idx;
         }
 
         if (m_terminate)
             return;
     }
-}
+}*/
         /*
         bool cont = true;
 
@@ -315,28 +424,37 @@ void NMXClusterPairing::process() {
     }
 }*/
 
-void NMXClusterPairing::calculateQmatrix(nmx::cluster_queue &current, nmx::cluster_queue &previous) {
+void NMXClusterPairing::calculateQmatrix(nmx::cluster_queue &this_queue, nmx::cluster_queue &next_queue) {
 
-    m_nXcurrent = getQueueLength(0, current.at(0));
-    m_nYcurrent = getQueueLength(1, current.at(1));
-    m_nXprevious = getQueueLength(0, previous.at(0));
-    m_nYprevious = getQueueLength(1, previous.at(1));
+    std::cout << "<NMXClusterPairing::calculateQmatix> \n";
+    std::cout << "This-queue[" << this_queue.at(0) << ", " << this_queue.at(1) << "]\n";
+    std::cout << "Next-queue[" << next_queue.at(0) << ", " << next_queue.at(1) << "]\n";
 
-    int Xidx = (current.at(0) >= 0 ? current.at(0) : previous.at(0));
-    int Yidx = (current.at(1) >= 0 ? current.at(1) : previous.at(1));
+    m_nXcurrent = getQueueLength(0, this_queue.at(0));
+    m_nYcurrent = getQueueLength(1, this_queue.at(1));
+    m_nXnext = getQueueLength(0, next_queue.at(0));
+    m_nYnext = getQueueLength(1, next_queue.at(1));
 
-    for (int ix = 0; ix < m_nXcurrent + m_nXprevious; ix++) {
+    std::cout << "This queue length X = " << m_nXcurrent << std::endl;
+    std::cout << "This queue length Y = " << m_nYcurrent << std::endl;
+    std::cout << "Next queue length X = " << m_nXnext << std::endl;
+    std::cout << "Next queue length Y = " << m_nYnext << std::endl;
+
+    int Xidx = (this_queue.at(0) >= 0 ? this_queue.at(0) : next_queue.at(0));
+    int Yidx = (this_queue.at(1) >= 0 ? this_queue.at(1) : next_queue.at(1));
+
+    for (int ix = 0; ix < m_nXcurrent + m_nXnext; ix++) {
 
         std::cout << "<NMXClusterParing::calculateQmatrix> Attempting to get cluster " << Xidx << std::endl;
 
-        nmx::cluster &Xcluster = m_cluster_manager.getCluster(0, Xidx);
+        nmx::cluster &Xcluster = m_clusterManager.getCluster(0, Xidx);
         double xCharge = static_cast<double>(Xcluster.box.chargesum);
 
-        for (int iy = 0; iy < m_nYcurrent + m_nYprevious; iy++) {
+        for (int iy = 0; iy < m_nYcurrent + m_nYnext; iy++) {
 
             std::cout << "<NMXClusterParing::calculateQmatrix> Attempting to get cluster " << Yidx << std::endl;
 
-            nmx::cluster &Ycluster = m_cluster_manager.getCluster(1, Yidx);
+            nmx::cluster &Ycluster = m_clusterManager.getCluster(1, Yidx);
             double yCharge = static_cast<double>(Ycluster.box.chargesum);
 
             nmx::QmatrixEntry &Qentry = m_Qmatrix.at(ix).at(iy);
@@ -345,18 +463,18 @@ void NMXClusterPairing::calculateQmatrix(nmx::cluster_queue &current, nmx::clust
             Qentry.queue.at(0) = Xidx;
             Qentry.queue.at(1) = Yidx;
 
-            if (iy == m_nYcurrent)
-                Yidx = previous.at(1);
+            if (iy == m_nYcurrent-1)
+                Yidx = next_queue.at(1);
             else
                 Yidx = Ycluster.box.link1;
         }
 
-        if (ix == m_nXcurrent)
-            Xidx = previous.at(0);
+        if (ix == m_nXcurrent-1)
+            Xidx = next_queue.at(0);
         else
             Xidx = Xcluster.box.link1;
 
-        Yidx = (current.at(1) >= 0 ? current.at(1) : previous.at(1));
+        Yidx = (this_queue.at(1) >= 0 ? this_queue.at(1) : next_queue.at(1));
     }
 }
 
@@ -367,20 +485,41 @@ unsigned int NMXClusterPairing::getQueueLength(unsigned int plane, int idx) {
     while (idx >= 0) {
 
         //std::cout << "<NMXClusterPairing::getQueueLength> Progressing to cluster " << idx << std::endl;
-        idx = m_cluster_manager.getCluster(plane, idx).box.link1;
+        idx = m_clusterManager.getCluster(plane, idx).box.link1;
 
         length++;
     }
 
     return length;
 }
-/*
-void NMXClusterPairing::reset(uint n) {
 
-    for (uint i = 0; i < n; i++)
-        m_used.at(i) = false;
-}*/
+void NMXClusterPairing::reset() {
 
+    for (unsigned int idx = 0; idx < nmx::MAX_MINOR; idx++) {
 
+        m_time_ordered_buffer.at(idx).at(0) = -1;
+        m_time_ordered_buffer.at(idx).at(1) = -1;
+
+        m_majortime_buffer.at(idx) = 0;
+    }
+
+}
+
+void NMXClusterPairing::returnQueueToStack(int plane, int idx) {
+
+    if (idx == -1)
+        return;
+
+    std::cout << "<NMXClusterPairing::returnQueueToStack> Returning old clusters from "
+              << (plane ? "Y" : "X") << " queue. Starting at " << idx << std::endl;
+    while (idx >= 0) {
+        std::cout << "Getting next idx\n";
+        int nextIdx = m_clusterManager.getCluster(plane, idx).box.link1;
+        std::cout << "Next idx = " << nextIdx << std::endl;
+        std::cout << "Returning cluster " << idx << std::endl;
+        m_clusterManager.returnClusterToStack(plane, idx);
+        idx = nextIdx;
+    }
+}
 
 

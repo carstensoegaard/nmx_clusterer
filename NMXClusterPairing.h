@@ -6,10 +6,10 @@
 #define PROJECT_CLUSTERPAIRING_H
 
 #include <thread>
+#include <mutex>
 
 #include "NMXClustererDefinitions.h"
 #include "NMXClusterManager.h"
-//#include "NMXTimeOrderedBuffer.h"
 
 class NMXClusterPairing {
 
@@ -43,10 +43,11 @@ public:
     unsigned int m_verbose_level;
     bool m_terminate;
 
-//    NMXTimeOrderedBuffer m_time_ordered_buffer;
     NMXClusterManager &m_clusterManager;
-    std::thread m_tinsert;
-    std::thread m_tprocess;
+
+    void process();
+    std::thread t_process;
+    std::mutex m_mutex;
 
     uint32_t getMinorTime(uint32_t time);
     uint32_t getMajorTime(uint32_t time);
@@ -58,13 +59,14 @@ public:
 
     unsigned int getQueueLength(unsigned int plane, int idx);
 
-    void insert();
-    void process();
     void reset();
 
     // For debugging
 
     void returnQueueToStack(int plane, int idx);
+
+    void printSortBuffer();
+    void printQueue();
 
 };
 

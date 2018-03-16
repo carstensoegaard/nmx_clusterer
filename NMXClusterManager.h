@@ -6,6 +6,7 @@
 #define PROJECT_NMXCLUSTERMANAGER_H
 
 #include <array>
+#include <mutex>
 
 #include "NMXClustererDefinitions.h"
 
@@ -33,6 +34,10 @@ private:
     std::array<int, 2> m_stackTail;
 
     std::array<nmx::cluster_buffer, 2> m_buffer;
+
+    std::mutex m_mutex;
+
+    unsigned int m_verboseLevel;
 
     void init();
 };

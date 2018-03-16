@@ -6,6 +6,7 @@
 #include "NMXClusterManager.h"
 
 NMXClusterManager::NMXClusterManager()
+        : m_verboseLevel(0)
 {
     init();
 }
@@ -19,6 +20,7 @@ int NMXClusterManager::getClusterFromStack(unsigned int plane) {
         //return m_stackHead.at(plane);
     }
 
+    m_mutex.lock();
     int idx = m_stackHead.at(plane);
 
     nmx::cluster_buffer &buffer = m_buffer.at(plane);
@@ -31,19 +33,18 @@ int NMXClusterManager::getClusterFromStack(unsigned int plane) {
     m_stackHead.at(plane) = newstackheadidx;
 
     setLink1(plane, idx, -1);
-    //printStack(plane);
+    m_mutex.unlock();
 
     return idx;
 }
 
 void NMXClusterManager::returnClusterToStack(unsigned int plane, unsigned int idx) {
 
-    std::cout << "<NMXClusterManager::returnClusterToStack> Returning cluster # " << idx
-              << " to plane " << (plane ? "Y" : "X")<< std::endl;
+    if (m_verboseLevel > 0)
+        std::cout << "<NMXClusterManager::returnClusterToStack> Returning cluster # " << idx
+                  << " to plane " << (plane ? "Y" : "X")<< std::endl;
 
-    /*std::cout << "Stack before :\n";
-    printStack(plane);*/
-
+    m_mutex.lock();
     int &stackHead = m_stackHead.at(plane);
     int &stackTail = m_stackTail.at(plane);
 
@@ -55,9 +56,7 @@ void NMXClusterManager::returnClusterToStack(unsigned int plane, unsigned int id
     setLink1(plane, idx, -1); // Set the link of the tail to -1
 
     stackTail = idx; // Set the tail to the new idx
-
-    /*std::cout << "Stack after :\n";
-    printStack(plane);*/
+    m_mutex.unlock();
 }
 
 nmx::cluster & NMXClusterManager::getCluster(unsigned int plane, unsigned int idx) {
@@ -84,14 +83,15 @@ int NMXClusterManager::getLink1(unsigned int plane, unsigned int idx) {
 
 bool NMXClusterManager::setLink1(unsigned int plane, unsigned int idx, int link1) {
 
+    if (m_verboseLevel > 2)
+        std::cout << "<NMXClusterManager::setLink1> Setting link1 of cluster " << idx << " plane "
+                  << (plane ? "Y" : "X") << " to " << link1 << std::endl;*/
+
     if (idx == link1) {
         std::cout << "<NMXClusterManager::setLink1> Cannot set link to itself! Plane = " << (plane ? "Y" : "X")
                   << ", idx = " << idx << ", link1 = " << link1 << std::endl;
         return false;
     }
-
-    /*std::cout << "<NMXClusterManager::setLink1> Setting link1 of cluster " << idx << " plane "
-              << (plane ? "Y" : "X") << " to " << link1 << std::endl;*/
 
     nmx::cluster &cluster = getCluster(plane, idx);
 

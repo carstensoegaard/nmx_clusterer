@@ -202,14 +202,14 @@ namespace nmx {
 
     //*****************************************************************************************************************
 
-    static void printQueue(unsigned int plane, int idx, NMXClusterManager manager) {
+    static void printQueue(unsigned int plane, int idx, NMXClusterManager &manager) {
 
         if (idx < 0) {
-            std::cout << "Empty queue!\n";
+            std::cout << "Empty!\n";
             return;
         }
 
-        std::cout << "Queue: ";
+        std::cout << (plane ? "Y" : "X") << "-queue: ";
         while (idx >= 0) {
             std::cout << idx << " -> ";
             idx = manager.getLink1(plane, idx);

@@ -43,6 +43,7 @@ namespace nmx {
 
     const unsigned int MAX_CLUSTER_TIME_DIFF = 32;
 
+    const unsigned int DIM_Q_MATRIX = 15;
     const double DELTA_Q = 0.3;
 }
 

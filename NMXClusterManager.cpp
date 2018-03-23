@@ -84,8 +84,8 @@ int NMXClusterManager::getLink1(unsigned int plane, unsigned int idx) {
 bool NMXClusterManager::setLink1(unsigned int plane, unsigned int idx, int link1) {
 
     if (m_verboseLevel > 2)
-        std::cout << "<NMXClusterManager::setLink1> Setting link1 of cluster " << idx << " plane "
-                  << (plane ? "Y" : "X") << " to " << link1 << std::endl;*/
+    std::cout << "<NMXClusterManager::setLink1> Setting link1 of cluster " << idx << " plane "
+              << (plane ? "Y" : "X") << " to " << link1 << std::endl;
 
     if (idx == link1) {
         std::cout << "<NMXClusterManager::setLink1> Cannot set link to itself! Plane = " << (plane ? "Y" : "X")

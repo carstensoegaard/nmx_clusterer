@@ -35,7 +35,7 @@ private:
 
     std::array<nmx::cluster_buffer, 2> m_buffer;
 
-    std::mutex m_mutex;
+    std::mutex m_mutex[2];
 
     unsigned int m_verboseLevel;
 

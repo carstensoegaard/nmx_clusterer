@@ -23,7 +23,7 @@ nmx_location NMXLocationFinder::find(nmx::pairBuffer &buf) {
     for (int i = 0; i < buf.npairs; i++) {
 
         nmx::cluster xcluster = m_clusterManager.getCluster(0, buf.pairs.at(i).x_idx);
-        nmx::cluster ycluster = m_clusterManager.getCluster(0, buf.pairs.at(i).y_idx);
+        nmx::cluster ycluster = m_clusterManager.getCluster(1, buf.pairs.at(i).y_idx);
 
         m_file << "******\n";
         m_file << "x-points:\n";
@@ -48,7 +48,7 @@ nmx_location NMXLocationFinder::find(nmx::pairBuffer &buf) {
         m_file << "\n";
 
         m_clusterManager.returnClusterToStack(0, buf.pairs.at(i).x_idx);
-        m_clusterManager.returnClusterToStack(0, buf.pairs.at(i).y_idx);
+        m_clusterManager.returnClusterToStack(1, buf.pairs.at(i).y_idx);
     }
 
 

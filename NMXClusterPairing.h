@@ -74,6 +74,8 @@ public:
     void printSortBuffer();
     void printQueue();
 
+    void checkSortBuffer();
+
 };
 
 #endif //PROJECT_PAIRCLUSTERS_H

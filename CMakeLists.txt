@@ -11,8 +11,8 @@ set(NMX_CLUSTERER_HEADERS NMXClustererSettings.h NMXClustererDefinitions.h BoxAd
         NMXPlaneClusterer.h NMXClusterPairing.h NMXLocationFinder.h)
 add_library(libnmx ${NMX_CLUSTERER_SOURCES} ${NMX_CLUSTERER_HEADERS} NMXClusterer.cpp NMXClusterer.h)
 
-set(NMX_HELPER_SOURCES SpecialDataReader.cpp EventManager.cpp)
-set(NMX_HELPER_HEADERS NMXClustererHelper.h SpecialDataReader.h EventManager.h)
+set(NMX_HELPER_SOURCES SpecialDataReader.cpp NMXClustererVerification.cpp)
+set(NMX_HELPER_HEADERS NMXClustererHelper.h SpecialDataReader.h NMXClustererVerification.h)
 add_library(libnmxhelper ${NMX_HELPER_SOURCES} ${NMX_HELPER_HEADERS})
 
 add_executable(testnmxclusterfile testNMXClustererFile.cpp)

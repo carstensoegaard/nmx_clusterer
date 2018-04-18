@@ -8,7 +8,7 @@
 NMXClusterManager::NMXClusterManager()
         : m_verboseLevel(0)
 {
-    init();
+    reset();
 }
 
 int NMXClusterManager::getClusterFromStack(unsigned int plane) {
@@ -107,27 +107,7 @@ int NMXClusterManager::getLink1(unsigned int plane, unsigned int idx) {
     return box.link1;
 }
 
-bool NMXClusterManager::setLink1(unsigned int plane, unsigned int idx, int link1) {
-
-    if (m_verboseLevel > 2)
-    std::cout << "<NMXClusterManager::setLink1> Setting link1 of cluster " << idx << " plane "
-              << (plane ? "Y" : "X") << " to " << link1 << std::endl;
-
-    if (idx == link1) {
-        std::cout << "<NMXClusterManager::setLink1> Cannot set link to itself! Plane = " << (plane ? "Y" : "X")
-                  << ", idx = " << idx << ", link1 = " << link1 << std::endl;
-        return false;
-    }
-
-    nmx::cluster &cluster = getCluster(plane, idx);
-
-    nmx::box &box = cluster.box;
-    box.link1 = link1;
-
-    return true;
-}
-
-void NMXClusterManager::init() {
+void NMXClusterManager::reset() {
 
     for (int plane = 0; plane < 2; plane++) {
         m_stackHead.at(plane) = nmx::NCLUSTERS - 1;
@@ -138,6 +118,8 @@ void NMXClusterManager::init() {
         for (int i = 0; i < nmx::NCLUSTERS; i++) {
 
             nmx::cluster &cluster = buffer.at(i);
+
+            cluster.npoints = 0;
 
             cluster.box.link1 = i - 1;
             cluster.box.link2 = -1;

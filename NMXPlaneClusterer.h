@@ -32,6 +32,7 @@ public:
 
     void endRun();
     void terminate() { m_terminate = true; }
+    void reset();
 
     std::vector<nmx::cluster>& getProducedClusters() { return m_produced_clusters; }
 
@@ -96,8 +97,6 @@ private:
     void checkBoxes();
 
     void guardB();
-
-    void reset();
 
     void checkBitSum();
     void printInitialization();

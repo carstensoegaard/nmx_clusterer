@@ -8,12 +8,15 @@
 #include <vector>
 #include <array>
 #include <fstream>
+#include <thread>
+#include <mutex>
 
 #include "NMXClustererDefinitions.h"
 
 namespace EVMAN {
 
-    typedef std::vector<nmx::data_point> event;
+    typedef std::vector<nmx::data_point> plane;
+    typedef std::array<plane, 2> event;
 
     struct cluster {
 
@@ -26,13 +29,15 @@ namespace EVMAN {
 
 class EventManager {
 
+private:
+    EventManager();
 public:
 
-    EventManager();
+    static EventManager* getInstance();
     ~EventManager();
 
     void insertEvent(const EVMAN::event &ev);
-    void compareToStored(std::vector<nmx::cluster> &cluster_buffer);
+    void insertCluster(const nmx::cluster &X, const nmx::cluster &Y);
     void flushBuffer();
 
     void printStats();
@@ -49,24 +54,30 @@ private:
     EVMAN::buffer m_eventBuffer;
     EVMAN::buffer m_produced_clusters;
 
+    std::mutex m_mutex;
+
     std::ofstream m_ofile;
 
-    std::array<int, 2> compare(EVMAN::event &cluster);
+    std::array<int, 2> compare(EVMAN::cluster &cluster);
 
-    int numberOfMatchingPoints(const EVMAN::event &cluster, const EVMAN::event &event);
-    void removeMatchingPoints(EVMAN::event &cluster, EVMAN::event &stored);
+    int numberOfMatchingPoints(const EVMAN::cluster &produced, const EVMAN::cluster &stored);
+    int numberOfMatchingPointsPlane(const EVMAN::plane &produced, const EVMAN::plane &stored);
+
+    void removeMatchingPoints(EVMAN::cluster &produced, EVMAN::cluster &stored);
+    void removeMatchingPointsPlane(EVMAN::plane &produced, EVMAN::plane &stored);
+
     bool pointsMatch(const nmx::data_point &p1, const nmx::data_point &p2);
 
     void flushOldestEvent();
-    void flushEvent(uint idx);
+    void flushEvent(uint eventIdx);
     void writeEventToFile(const EVMAN::cluster &cl);
+    void writePlaneToFile(const EVMAN::plane &plane);
 
-    EVMAN::event convertToVector(nmx::cluster &cluster);
+    EVMAN::plane convertToVector(const nmx::cluster &cluster);
     void printEvent(const EVMAN::cluster &cl);
-    void printEvent(const EVMAN::event &ev);
+    void printEvent(const EVMAN::plane &plane);
 
-
-
+    static EventManager* instance;
 };
 
 

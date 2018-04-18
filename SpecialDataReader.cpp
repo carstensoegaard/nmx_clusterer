@@ -12,11 +12,11 @@ SpecialDataReader::SpecialDataReader() {
     m_ifile.open("NMX_events.txt");
 }
 
-event SpecialDataReader::ReadNextEvent() {
+nmx::fullCluster SpecialDataReader::ReadNextEvent() {
 
     uint ievent = -1;
 
-    event evt;
+    nmx::fullCluster event;
 
     std::string line;
 
@@ -42,7 +42,7 @@ event SpecialDataReader::ReadNextEvent() {
                 inevent = false;
                 m_ifile.seekg(oldpos);
 
-                return evt;
+                return event;
 
             }
         } else {
@@ -51,33 +51,24 @@ event SpecialDataReader::ReadNextEvent() {
 
                 line_data data = readDataPoint(line);
 
-                std::vector<nmx::data_point> *plane = 0x0;
-
-                switch (data.at(0)) {
-
-                    case 0:
-                        plane = &evt.at(0);
-                        break;
-                    case 1:
-                        plane = &evt.at(1);
-                        break;
-                    default :
-                        std::cout << "Somethins'  goofed up ! You'll moste likely get at segfault soon!\n";
-                }
+                auto &plane = event.at(data.at(0));
 
                 nmx::data_point point;
-                point.strip = data.at(1);
-                point.time = data.at(2);
+                point.strip  = data.at(1);
+                point.time   = data.at(2);
                 point.charge = data.at(3);
 
-                plane->push_back(point);
+                plane.data.at(plane.npoints) = point;
+                plane.npoints++;
+                if (point.time > plane.box.max_time)
+                    plane.box.max_time = point.time;
 
                 oldpos = m_ifile.tellg();  // store current position
             }
         }
     }
 
-    return evt;
+    return event;
 }
 
 bool SpecialDataReader::isEventHeader(const std::string &line, uint &ievent) {

@@ -75,8 +75,11 @@ void NMXClusterPairing::process() {
 
     while (1) {
 
-        while ((m_nIn.at(0) == m_nOut.at(0)) && (m_nIn.at(1) == m_nOut.at(1)))
+        while ((m_nIn.at(0) == m_nOut.at(0)) && (m_nIn.at(1) == m_nOut.at(1))) {
+            if (m_terminate)
+                return;
             std::this_thread::yield();
+        }
 
         if (m_nIn.at(plane) > m_nOut.at(plane)) {
 
@@ -554,6 +557,14 @@ inline uint32_t NMXClusterPairing::getMinorTime(uint32_t time) {
 inline uint32_t NMXClusterPairing::getMajorTime(uint32_t time) {
 
     return time >> nmx::IGNORE_BITS >> nmx::MINOR_BITS;
+}
+
+void NMXClusterPairing::endRun() {
+
+    while (m_nIn != m_nOut)
+        std::this_thread::yield();
+
+    slideTimeWindow(nmx::MINOR_BITMASK, nmx::MINOR_BITMASK, 0);
 }
 
 void NMXClusterPairing::reset() {

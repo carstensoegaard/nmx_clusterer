@@ -9,7 +9,6 @@
 
 #include "NMXClustererSettings.h"
 
-
 namespace nmx {
 
     // A data-point for either X or Y plane
@@ -147,6 +146,13 @@ namespace nmx {
     struct pairBuffer {
         uint64_t npairs;
         std::array<clusterPair, 100> pairs;
+    };
+
+    // For verification and debugging
+
+    struct fullCluster {
+        std::array<nmx::cluster, 2> clusters;
+        unsigned int eventNo;
     };
 }
 

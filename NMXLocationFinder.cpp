@@ -4,8 +4,9 @@
 
 #include <iomanip>
 
+//#include "NMXClusterPairing.h"
+#include "EventManager.h"
 #include "NMXLocationFinder.h"
-#include "NMXClusterPairing.h"
 
 NMXLocationFinder::NMXLocationFinder(NMXClusterManager &clustermanager)
         : m_clusterManager(clustermanager)
@@ -20,10 +21,14 @@ nmx_location NMXLocationFinder::find(nmx::pairBuffer &buf) {
     loc.x_strip = -1;
     loc.y_strip = -1;
 
+    EventManager* manager = EventManager::getInstance();
+
     for (int i = 0; i < buf.npairs; i++) {
 
         nmx::cluster xcluster = m_clusterManager.getCluster(0, buf.pairs.at(i).x_idx);
         nmx::cluster ycluster = m_clusterManager.getCluster(1, buf.pairs.at(i).y_idx);
+
+        manager->insertCluster(xcluster, ycluster);
 
         m_file << "******\n";
         m_file << "x-points:\n";
@@ -50,8 +55,6 @@ nmx_location NMXLocationFinder::find(nmx::pairBuffer &buf) {
         m_clusterManager.returnClusterToStack(0, buf.pairs.at(i).x_idx);
         m_clusterManager.returnClusterToStack(1, buf.pairs.at(i).y_idx);
     }
-
-
 
     return loc;
 }

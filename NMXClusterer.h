@@ -19,6 +19,10 @@ public:
 
     void addDatapoint(unsigned int plane, nmx::data_point &point);
 
+    void endRun();
+    void reset();
+    void terminate();
+
 private:
 
     NMXPlaneClusterer m_XplaneClusterer;

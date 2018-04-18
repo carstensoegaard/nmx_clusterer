@@ -22,9 +22,9 @@ public:
 
     int getLink1(unsigned int plane, unsigned int idx);
 
-    bool setLink1(unsigned int plane, unsigned int idx, int link1);
-
     nmx::cluster &getCluster(unsigned int plane, unsigned int idx);
+
+    void reset();
 
     void printStack(unsigned int plane);
 
@@ -38,8 +38,6 @@ private:
     std::mutex m_mutex[2];
 
     unsigned int m_verboseLevel;
-
-    void init();
 };
 
 #endif //PROJECT_NMXCLUSTERMANAGER_H

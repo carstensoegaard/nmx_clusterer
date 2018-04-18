@@ -13,7 +13,7 @@
 #include "NMXClustererDefinitions.h"
 #include "NMXPlaneClusterer.h"
 #include "SpecialDataReader.h"
-#include "EventManager.h"
+#include "NMXClustererVerification.h"
 #include "NMXClusterer.h"
 
 typedef std::chrono::high_resolution_clock Clock;
@@ -26,20 +26,17 @@ int main() {
     unsigned int maxbinsperevent = 30;
     unsigned int maxtimeperevent = nspertimebin*maxbinsperevent*2;
 
-    std::mutex m;
     NMXClusterer c;
     //c.setVerboseLevel(0);
 
-    //std::vector<plane> insertedEvents;
-
-
-    uint repeat = 0;
+    NMXClustererVerification* verification = NMXClustererVerification::getInstance();
 
     SpecialDataReader reader;
 
     std::vector<event> events;
 
     bool cont = true;
+    uint repeat = 0;
 
     while (cont) {
 
@@ -50,8 +47,6 @@ int main() {
         else
             events.push_back(ievent);
     }
-
-    EventManager evman;
 
     int nrepeats = 10;
     int multiplier = 5;
@@ -64,70 +59,51 @@ int main() {
 
     while (repeat < nrepeats) {
 
-        //std::cout << "*** Repeat # " << repeat << " ***\n";
+        std::cout << "*** Repeat # " << repeat << " ***\n";
 
         for (int ievent = 0; ievent < /*1*/events.size(); ievent++) {
 
             event ev = events.at(ievent);
 
+            EVMAN::event mod_event;
+
             for (int iplane = 0; iplane < 2; iplane++) {
 
                 plane p = (ev.at(iplane));
 
-                for (int i = 0; i < p.size(); i++) {
-
+                for (int i = 0; i < p.size(); i++)
                     p.at(i).time = p.at(i).time * nspertimebin + multiplier * maxtimeperevent;
-                }
 
-                evman.insertEvent(p);
-
-                //insertedEvents.push_back(p);
+                mod_event.at(iplane) = p;
 
                 while (p.size() > 0) {
 
                     uint ipoint = rand() % p.size();
 
                     nmx::data_point point = p.at(ipoint);
+                    c.addDatapoint(iplane, point);
                     p.erase(p.begin() + ipoint);
 
-                    uint32_t strip = point.strip;
-                    uint32_t time = point.time;
-                    uint32_t charge = point.charge;
-
-                    //c.addDataPoint(strip, time, charge);
-                    c.addDatapoint(iplane, point);
                     npoints++;
-
-                    /*
-                    m.lock();
-                    std::vector<nmx::cluster> &produced_clusters = c.getProducedClusters();
-                    while (produced_clusters.size() > 0) {
-                        evman.compareToStored(produced_clusters);
-                    }
-                    m.unlock();*/
                 }
-
             }
+
+            evman->insertEvent(mod_event);
+
             multiplier++;
         }
 
         repeat++;
     }
 
-    //c.endRun();
+    c.endRun();
 
-    /*
-    std::vector<nmx::cluster> &produced_clusters = c.getProducedClusters();
-    while (produced_clusters.size() > 0) {
-        evman.compareToStored(produced_clusters);
-    }
-
-    evman.flushBuffer();
+    evman->flushBuffer();
 
     auto t2 = Clock::now();
 
     std::cout << "Number of inserted data-points                  : " << std::setw(10) << npoints << std::endl;
-    evman.printStats();
+    evman->printStats();
 
     auto time = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
 
@@ -136,7 +112,7 @@ int main() {
     std::cout << "Which is a rate of " << 1./(time/npoints/1000000.) << " Hz\n";
 
     c.terminate();
-*/
+
     return 0;
 }
 

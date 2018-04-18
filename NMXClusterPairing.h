@@ -21,6 +21,8 @@ public:
 
     void insertClusterInQueue(int plane, unsigned int cluster_idx);
 
+    void endRun();
+    void reset();
     void terminate() { m_terminate = true; }
 
    private:
@@ -64,8 +66,6 @@ public:
     void appendIndexToQueue(unsigned int plane, nmx::clusterParingEntry &queue, int clusterIdx);
 
     unsigned int getQueueLength(unsigned int plane, int idx);
-
-    void reset();
 
     // For debugging
 

@@ -665,11 +665,12 @@ void NMXPlaneClusterer::reset() {
         }
     }
 
-    // Reset the mask
+    // Reset i1
+    m_i1 = nmx::MINOR_BITMASK;
 
+    // Reset the mask
     for (uint idx = 0; idx < m_mask.size(); idx++)
         m_mask.at(idx) = -1;
-
 
     // Reset major-time buffer
     for (uint i = 0; i < nmx::MAX_MINOR; ++i) {
@@ -677,6 +678,9 @@ void NMXPlaneClusterer::reset() {
         m_SortQ.at(i) = 0;
         m_ClusterQ.at(i) = 1;
     }
+
+    // Start threads again
+    m_terminate = false;
 }
 
 void NMXPlaneClusterer::checkBoxes() {

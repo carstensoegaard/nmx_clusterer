@@ -17,14 +17,13 @@ typedef std::array<uint32_t, 4> line_data;
 typedef std::vector<nmx::data_point> plane;
 typedef std::array<plane, 2> event;
 
-
 class SpecialDataReader {
 
 public:
 
     SpecialDataReader();
 
-    event ReadNextEvent();
+    nmx::fullCluster ReadNextEvent();
 
 private:
 

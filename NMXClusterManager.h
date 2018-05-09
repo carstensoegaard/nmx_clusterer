@@ -26,6 +26,8 @@ public:
 
     void reset();
 
+    uint64_t getFailedClusterRequests() { return m_nFailedClusterRequests; }
+
     void printStack(unsigned int plane);
 
 private:
@@ -36,6 +38,8 @@ private:
     std::array<nmx::cluster_buffer, 2> m_buffer;
 
     std::mutex m_mutex[2];
+
+    uint64_t m_nFailedClusterRequests = 0;
 
     unsigned int m_verboseLevel;
 };

@@ -18,6 +18,10 @@ nmx::fullCluster SpecialDataReader::ReadNextEvent() {
 
     nmx::fullCluster event;
 
+    if (m_verboseLevel > 0)
+        std::cout << "nXpoints = " << event.clusters.at(0).npoints << ", nYpoints = " << event.clusters.at(1).npoints
+                  << std::endl;
+
     std::string line;
 
     bool inevent = false;
@@ -30,14 +34,16 @@ nmx::fullCluster SpecialDataReader::ReadNextEvent() {
 
             if (!inevent) {
 
-                //std::cout << "Processing event # " << ievent << std::endl;
+                if (m_verboseLevel > 0)
+                    std::cout << "Processing event # " << ievent << std::endl;
 
                 inevent = true;
                 continue;
 
             } else {
 
-                //std::cout << "Finished event\n";
+                if (m_verboseLevel > 0)
+                    std::cout << "Finished event\n";
 
                 inevent = false;
                 m_ifile.seekg(oldpos);
@@ -49,14 +55,26 @@ nmx::fullCluster SpecialDataReader::ReadNextEvent() {
 
             if (inevent) {
 
+                if (m_verboseLevel > 0)
+                    std::cout << "Reding data ...\n";
+
                 line_data data = readDataPoint(line);
 
-                auto &plane = event.at(data.at(0));
+                if (m_verboseLevel > 0)
+                    std::cout << "Getting " << (data.at(0) ? "Y" : "X") << " plane\n";
+
+                auto &plane = event.clusters.at(data.at(0));
+
+                if (m_verboseLevel > 0)
+                    std::cout << "Forming point\n";
 
                 nmx::data_point point;
                 point.strip  = data.at(1);
                 point.time   = data.at(2);
                 point.charge = data.at(3);
+
+                if (m_verboseLevel > 0)
+                    std::cout << "Inserting point at " << plane.npoints << "\n";
 
                 plane.data.at(plane.npoints) = point;
                 plane.npoints++;
@@ -64,6 +82,9 @@ nmx::fullCluster SpecialDataReader::ReadNextEvent() {
                     plane.box.max_time = point.time;
 
                 oldpos = m_ifile.tellg();  // store current position
+
+                if (m_verboseLevel > 0)
+                    std::cout << "Done!\n";
             }
         }
     }

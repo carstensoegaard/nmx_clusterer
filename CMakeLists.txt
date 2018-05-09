@@ -2,24 +2,30 @@ cmake_minimum_required(VERSION 3.5)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_BUILD_TYPE debug)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-error=unused-function")
+
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 set(NMX_CLUSTERER_SOURCES BoxAdministration.cpp NMXClusterManager.cpp NMXClusterer.cpp
         NMXClusterPairing.cpp NMXPlaneClusterer.cpp NMXLocationFinder.cpp)
 set(NMX_CLUSTERER_HEADERS NMXClustererSettings.h NMXClustererDefinitions.h BoxAdministration.h NMXClusterManager.h
-        NMXPlaneClusterer.h NMXClusterPairing.h NMXLocationFinder.h)
-add_library(libnmx ${NMX_CLUSTERER_SOURCES} ${NMX_CLUSTERER_HEADERS} NMXClusterer.cpp NMXClusterer.h)
+        NMXPlaneClusterer.h NMXClusterPairing.h NMXLocationFinder.h NMXQmatrix.h )
+add_library(nmx ${NMX_CLUSTERER_SOURCES} ${NMX_CLUSTERER_HEADERS} NMXClusterer.cpp NMXClusterer.h)
 
-set(NMX_HELPER_SOURCES SpecialDataReader.cpp NMXClustererVerification.cpp)
-set(NMX_HELPER_HEADERS NMXClustererHelper.h SpecialDataReader.h NMXClustererVerification.h)
-add_library(libnmxhelper ${NMX_HELPER_SOURCES} ${NMX_HELPER_HEADERS})
+set(NMX_HELPER_SOURCES SpecialDataReader.cpp ClusterReader.cpp WriteVerificationToDisk.cpp VerifyClusters.cpp)
+set(NMX_HELPER_HEADERS NMXClustererHelper.h SpecialDataReader.h ClusterReader.h WriteVerificationToDisk.h VerifyClusters.h)
+add_library(nmxhelper ${NMX_HELPER_SOURCES} ${NMX_HELPER_HEADERS})
 
 add_executable(testnmxclusterfile testNMXClustererFile.cpp)
-target_link_libraries(testnmxclusterfile libnmx libnmxhelper Threads::Threads)
+target_link_libraries(testnmxclusterfile nmx nmxhelper Threads::Threads)
 
-add_executable(testnmxclustermanager testClusterManager.cpp)
-target_link_libraries(testnmxclustermanager libnmx libnmxhelper)
+#add_executable(testnmxclustermanager testClusterManager.cpp)
+#target_link_libraries(testnmxclustermanager libnmx libnmxhelper)
+
+add_executable(verifyclusterer verifyClusterer.cpp)
+target_link_libraries(verifyclusterer nmxhelper)
+#target_link_libraries(verifyclusterer)
 
 #add_executable(testnmxtimeorderedbuffer testnmxtimeorderedbuffer.cpp)
 #target_link_libraries(testnmxtimeorderedbuffer libnmx libnmxhelper Threads::Threads)

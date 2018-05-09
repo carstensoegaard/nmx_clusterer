@@ -16,7 +16,6 @@ NMXClusterer::NMXClusterer()
     m_YplaneClusterer.setVerboseLevel(0);
 }
 
-
 void NMXClusterer::addDatapoint(unsigned int plane, nmx::data_point &point) {
 
     if (plane > 1) {

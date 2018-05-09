@@ -29,6 +29,8 @@ private:
 
     std::ifstream m_ifile;
 
+    int m_verboseLevel = 0;
+
     bool isEventHeader(const std::string &line, uint &ievent);
     line_data readDataPoint(const std::string &line);
 

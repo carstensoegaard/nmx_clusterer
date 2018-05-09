@@ -11,13 +11,17 @@
 
 NMXClustererVerification::NMXClustererVerification()
         : m_ievent(0),
-          m_i1(nmx::MINOR_BITMASK),
+          m_i1(m_minorBitmask),
           m_verbose_level(0),
           m_terminate(false)
 {
     m_file.open("NMX_matched_clusters.txt");
 
     reset();
+
+    std::cout << "<NMXClustererVerification::NMXClustererVerification> :\n";
+    for (int i = 0; i < 2; i++)
+        std::cout << "   nIn[" << i << "] = " << m_In[i] << ", nOut[" << i << "] = " << m_Out[i] << std::endl;
 
     t_process = std::thread(&NMXClustererVerification::process, this);
 }
@@ -31,26 +35,41 @@ NMXClustererVerification::~NMXClustererVerification() {
 
 void NMXClustererVerification::insertEventInQueue(const nmx::fullCluster &event) {
 
+    //std::cout << "Inserting event:\n";
+    //printFullCluster(event);
+
     if ((m_In[0] - m_Out[0]) > 99)
         std::this_thread::yield();
 
     unsigned int clusterQueueIdx = m_In[0] % 100;
 
-    event.eventNo = m_ievent;
     m_queue.at(0).at(clusterQueueIdx) = event;
+    m_queue.at(0).at(clusterQueueIdx).eventNo = m_ievent;
     m_In[0]++;
     m_ievent++;
+
+    /*
+    std::cout << "Associated event # : " << m_queue.at(0).at(clusterQueueIdx).eventNo << std::endl;
+
+    std::cout << "Event inserted - queue-length now " << m_In[0] << std::endl;
+     */
 }
 
 void NMXClustererVerification::insertClusterInQueue(const nmx::fullCluster &cluster) {
+
+    /*
+    std::cout << "Inserting cluster :\n";
+    printFullCluster(cluster);
+*/
 
     if ((m_In[1] - m_Out[1]) > 99)
         std::this_thread::yield();
 
     unsigned int clusterQueueIdx = m_In[1] % 100;
 
-    m_queue.at(1).at(clusterQueueIdx) = event;
+    m_queue.at(1).at(clusterQueueIdx) = cluster;
     m_In[1]++;
+    //std::cout << "Cluster inserted. Queue length now " << m_In[1] - m_Out[1] << std::endl;
 }
 
 void NMXClustererVerification::process() {
@@ -59,11 +78,15 @@ void NMXClustererVerification::process() {
 
     while (1) {
 
-        while ((m_eventIn == m_eventOut) && (m_clusterIn == m_clusterOut)) {
+        while ((m_In[0] == m_Out[0]) && (m_In[1] == m_Out[1])) {
             if (m_terminate)
                 return;
             std::this_thread::yield();
         }
+
+        std::cout << "Processing " << (shifter ? "Cluster" : "Event") << " queue ...\n";
+        /*std::cout << (shifter ? "Y" : "X") << "-queue contains " << m_In[shifter] << " - " <<  m_Out[shifter]
+                  << " = " << m_In[shifter] - m_Out[shifter] << " elements\n";*/
 
         if (m_In[shifter] > m_Out[shifter]) {
 
@@ -71,18 +94,23 @@ void NMXClustererVerification::process() {
 
             unsigned int queueIdx = m_Out[shifter]%100;
 
-            nmx::cluster &object = queue.at(queueIdx);
+            //std::cout << "Accessing entry " << queueIdx << std::endl;
 
-            uint32_t minortime = getMinorTime(object.box.max_time);
-            uint32_t majortime = getMajorTime(object.box.max_time);
+            nmx::fullCluster &object = queue.at(queueIdx);
 
-            if (m_verbose_level > 1) {
-                std::cout << "<NMXClustererVerification::insert> Got idx " << cluster_idx << " from " << buffer_idx
-                          << std::endl;
-                std::cout << "Time = " << time << ", B1 = " << minorTime << ", B2 = " << majorTime << std::endl;
-                std::cout << "B2_buffer[" << minorTime << "] = " << m_majortime_buffer[minorTime] << " B2_buffer[0] = "
-                          << m_majortime_buffer.at(0) << " i1 = " << m_i1 << std::endl;
-            }
+            uint32_t maxTimeX = object.clusters.at(0).box.max_time;
+            uint32_t maxTimeY = object.clusters.at(1).box.max_time;
+
+            uint32_t maxTime = std::max(maxTimeX, maxTimeY);
+
+            uint32_t minorTime = getMinorTime(maxTime);
+            uint32_t majorTime = getMajorTime(maxTime);
+
+
+            std::cout << "Time = " << maxTime << ", B1 = " << minorTime << ", B2 = " << majorTime << std::endl;
+            std::cout << "B2_buffer[" << minorTime << "] = " << m_majortime_buffer[minorTime] << " B2_buffer[0] = "
+                      << m_majortime_buffer.at(0) << " i1 = " << m_i1 << std::endl;
+
 
             if (majorTime >= (m_majortime_buffer.at(0) + 1)) {
 
@@ -91,7 +119,7 @@ void NMXClustererVerification::process() {
                     if (m_verbose_level > 1)
                         std::cout << "Case 1\n";
 
-                    slideTimeWindow(nmx::MAX_MINOR - m_i1 + std::min(m_i1, minorTime) + 1, minorTime, majorTime);
+                    slideTimeWindow(m_maxMinor - m_i1 + std::min(m_i1, minorTime), minorTime, majorTime);
                     addToBuffer(shifter, object, minorTime);
 
                 } else { // majorTime > (m_majortime_buffer.at(0) + 1)
@@ -99,7 +127,7 @@ void NMXClustererVerification::process() {
                     if (m_verbose_level > 1)
                         std::cout << "Case 2\n";
 
-                    slideTimeWindow(nmx::MAX_MINOR, minorTime, majorTime);
+                    slideTimeWindow(m_maxMinor, minorTime, majorTime);
                     addToBuffer(shifter, object, minorTime);
                 }
 
@@ -158,87 +186,125 @@ void NMXClustererVerification::slideTimeWindow(uint d, uint minorTime, uint majo
 
     for (uint64_t i = 0; i < d; ++i) {
 
-        uint64_t thisIdx = (i + m_i1 + 1) % nmx::MAX_MINOR;
-        uint64_t nextIdx = (thisIdx + 1) % nmx::MAX_MINOR;
+        uint64_t thisIdx = (i + m_i1 + 1) % m_maxMinor;
+        uint64_t nextIdx = (thisIdx + 1) % m_maxMinor;
 
-        auto &thisEntry = m_time_ordered_buffer.at(thisIdx);
-        auto &nextEntry = m_time_ordered_buffer.at(nextIdx);
+        //std::cout << "Moving # " << i << " with idx's " << thisIdx << " & " << nextIdx << std::endl;
+
+        bufferEntry &thisEntry = m_time_ordered_buffer.at(thisIdx);
+        bufferEntry &nextEntry = m_time_ordered_buffer.at(nextIdx);
+/*
+        std::cout << "# of 'this' events = " << thisEntry.at(0).size() << ", # of 'next' events = "
+                  << nextEntry.at(0).size() << std::endl;
+        std::cout << "# of 'this' clusters = " << thisEntry.at(1).size() << ", # of 'next' clusters = "
+                  << nextEntry.at(1).size() << std::endl;
+*/
 
         findMatches(thisEntry, nextEntry);
 
+  /*      std::cout << "# of events = " << thisEntry.at(0).size() << ", # of clusters = " << thisEntry.at(1).size()
+                  << std::endl;*/
         thisEntry.at(0).clear();
-        nextEntry.at(1).clear();
+        thisEntry.at(1).clear();
+        /*std::cout << "# of events = " << thisEntry.at(0).size() << ", # of clusters = " << thisEntry.at(1).size()
+                  << std::endl;*/
+
+        if (thisIdx <= minorTime)
+            m_majortime_buffer.at(thisIdx) = majorTime;
+        else
+            m_majortime_buffer.at(thisIdx) = majorTime -1;
     }
+
+    if (m_verbose_level > 2) {
+        std::cout << "Setting i1 to " << minorTime << std::endl;
+        nmx::printMajorTimeBuffer(m_majortime_buffer);
+    }
+
+    m_i1 = minorTime;
 }
+
 
 void NMXClustererVerification::findMatches(bufferEntry &thisEntry, bufferEntry &nextEntry) {
 
-    int nEvents = thisEntry.at(0).size() + nextEntry.at(0).size();
-    int nClusters = thisEntry.at(1).size() + nextEntry.at(1).size();
+    unsigned int nEvents = thisEntry.at(0).size() + nextEntry.at(0).size();
+    unsigned int nClusters = thisEntry.at(1).size() + nextEntry.at(1).size();
 
-    for (int ievent = 0; ievent < nEvents; ievent++) {
+    std::cout << "Finding matches :\n";
+    std::cout << "       Events   : " << thisEntry.at(0).size() << " + " << nextEntry.at(0).size() << " = " << nEvents
+              << std::endl;
+    std::cout << "       Clusters : " << thisEntry.at(1).size() << " + " << nextEntry.at(1).size() << " = " << nClusters
+              << std::endl;
 
-        auto &eventQueue = thisEntry.at(0);
-        if (ievent >= thisEntry.at(0).size())
-            eventQueue = nextEntry.at(0);
+    auto eventIter1 = thisEntry.at(0).begin();
 
-        nmx::fullCluster &event = eventQueue.at(ievent);
-        unsigned int eventNo = event.eventNo;
+    while (eventIter1 != thisEntry.at(0).end()) {
 
-        int maxMatching = 0;
-        int bestCluster = -1;
+        nmx::fullCluster &event = *eventIter1;
 
-        for (int icluster = 0; icluster < nClusters; icluster++) {
-
-            if ((ievent >= thisEntry.at(0).size()) && (icluster >= thisEntry.at(1).size()))
-                continue;
-
-            auto &clusterQueue = thisEntry.at(1);
-            if (icluster >= thisEntry.at(1).size())
-                clusterQueue = nextEntry.at(1);
-
-            nmx::fullCluster &cluster = clusterQueue.at(icluster);
-
-            int nMatching = numberOfMatchingPoints(event, cluster)
-
-            if (nMatching > maxMatching) {
-                maxMatching = nMatching;
-                bestCluster = icluster;
-            }
-        }
-
-        auto &clusterQueue = thisEntry.at(1);
-
-        if (bestCluster >= thisEntry.at(1).size()) {
-            clusterQueue = nextEntry.at(1);
-            bestCluster -= thisEntry.at(1).size();
-        }
-
-        nmx::fullCluster &cluster = clusterQueue.at(bestCluster);
-        cluster.eventNo = eventNo;
+        compareToClusters(event, thisEntry.at(1), nextEntry.at(1));
     }
 
-    for (int ievent = 0; ievent < nEvents; ievent++) {
+    auto eventIter2 = nextEntry.at(0).begin();
 
-        auto &eventQueue = thisEntry.at(0);
-        if (ievent >= thisEntry.at(0).size())
-            eventQueue = nextEntry.at(0);
+    while (eventIter2 != nextEntry.at(0).end()) {
 
-        nmx::fullCluster &event = eventQueue.at(ievent);
-        unsigned int eventNo = event.eventNo;
+        nmx::fullCluster &event = *eventIter2;
 
-        writeEventToFile(eventNo, event);
-        writeClustersToFile(eventNo, thisEntry.at(1));
-        writeClustersToFile(eventNo, nextEntry.at(1));
+        compareToClusters(event, thisEntry.at(1), nextEntry.at(1));
     }
+
+
+}
+
+void NMXClustererVerification::compareToClusters(const nmx::fullCluster &event,
+                                                 std::vector<nmx::fullCluster> &thisClusterQueue,
+                                                 std::vector<nmx::fullCluster> &nextClusterQueue) {
+
+    unsigned int nMatching1 = 0;
+    unsigned int nMatching2 = 0;
+
+    std::vector<nmx::fullCluster>::iterator cluster1 = compareToQueue(event, thisClusterQueue, nMatching1);
+    std::vector<nmx::fullCluster>::iterator cluster2 = compareToQueue(event, nextClusterQueue, nMatching2);
+
+    if (nMatching1 > nMatching2)
+        cluster1->eventNo = event.eventNo;
+    if (nMatching2 > nMatching1)
+        cluster2->eventNo = event.eventNo;
+}
+
+std::vector<nmx::fullCluster>::iterator NMXClustererVerification::compareToQueue(const nmx::fullCluster &event,
+                                                                                 std::vector<nmx::fullCluster> &clusterQueue,
+                                                                                 unsigned int &nMatches) {
+
+    std::vector<nmx::fullCluster>::iterator bestCluster;
+    unsigned int maxMatching = 0;
+
+    std::vector<nmx::fullCluster>::iterator clusterIt = clusterQueue.begin();
+
+    while (clusterIt != clusterQueue.end()) {
+
+        nmx::fullCluster cluster = *clusterIt;
+
+        unsigned int nMatching = numberOfMatchingPoints(event, cluster);
+
+        std::cout << "Number of maching points found = " << nMatching << std::endl;
+
+        if (nMatching > maxMatching) {
+            maxMatching = nMatching;
+            bestCluster = clusterIt;
+        }
+    }
+
+    nMatches = maxMatching;
+    return bestCluster;
 }
 
 int NMXClustererVerification::numberOfMatchingPoints(const nmx::fullCluster &event, const nmx::fullCluster &cluster) {
 
     int nMatches = 0;
 
-    nMatches += numberOfMatchingPointsPlane(event.at(0), cluster.at(0));
-    nMatches += numberOfMatchingPointsPlane(event.at(1), cluster.at(1));
+    nMatches += numberOfMatchingPointsPlane(event.clusters.at(0), cluster.clusters.at(0));
+    nMatches += numberOfMatchingPointsPlane(event.clusters.at(1), cluster.clusters.at(1));
 
     return nMatches;
 }
@@ -247,20 +313,20 @@ int NMXClustererVerification::numberOfMatchingPointsPlane(const nmx::cluster &ev
 
     int nMatches = 0;
 
-    for (int ievent = 0; ievent < event.npoints; ievent++) {
+    for (unsigned int ievent = 0; ievent < event.npoints; ievent++) {
 
-        nmx::data_point &evPoint = event.data.at(ievent);
+        const nmx::data_point &evPoint = event.data.at(ievent);
 
-        for (int icluster = 0; icluster < cluster.npoints; icluster++) {
+        for (unsigned int icluster = 0; icluster < cluster.npoints; icluster++) {
 
-            nmx::data_point &clPoint = cluster.data.at(icluster);
+            const nmx::data_point &clPoint = cluster.data.at(icluster);
 
-            if (pointsMatch(produced_point, stored_point))
-                nmatches++;
+            if (pointsMatch(evPoint, clPoint))
+                nMatches++;
         }
     }
 
-    return nmatches;
+    return nMatches;
 }
 
 bool NMXClustererVerification::pointsMatch(const nmx::data_point &p1, const nmx::data_point &p2) {
@@ -273,81 +339,97 @@ bool NMXClustererVerification::pointsMatch(const nmx::data_point &p1, const nmx:
 
 inline int NMXClustererVerification::getTotalPoints(const nmx::fullCluster &object) {
 
-    int totalPoints = object.at(0).npoints;
-    totalPoints += object.at(1).npoints;
+    int totalPoints = object.clusters.at(0).npoints;
+    totalPoints += object.clusters.at(1).npoints;
 
     return totalPoints;
 }
 
-void NMXClustererVerification::writeEventToFile(int eventNo, nmx::fullCluster &event) {
+void NMXClustererVerification::writeEventToFile(unsigned int eventNo, nmx::fullCluster &event) {
 
+    std::cout << "Writing event # " << eventNo << " to file!\n";
     m_file << "Event # " << eventNo << std::endl;
     writeObjectToFile(event);
 }
 
-void NMXClustererVerification::writeClustersToFile(int eventNo, bufferEntry &entry) {
+void NMXClustererVerification::writeClustersToFile(unsigned int eventNo, bufferEntry &entry) {
 
-    auto it = entry.begin();
+    std::cout << "Searching for clusters which match event #" << eventNo << std::endl;
+
+    auto it = entry.at(1).begin();
 
     while (it != entry.at(1).end()) {
 
         nmx::fullCluster &cluster = *it;
 
+        std::cout << "Current cluster matches event # " << cluster.eventNo << std::endl;
+
         if (cluster.eventNo == eventNo) {
             writeObjectToFile(cluster);
             entry.at(1).erase(it);
-        } else
+        } else {
+
+            std::cout << "Incrementing iterator\n";
+
             it++;
+        }
     }
 }
 
 inline void NMXClustererVerification::writeObjectToFile(nmx::fullCluster &object) {
 
+    std::cout << "Writing object to file\n";
+
     m_file << "X:\n";
-    writePlaneToFile(event.at(0));
+    writePlaneToFile(object.clusters.at(0));
     m_file << "Y:\n";
-    writePlaneToFile(event.at(1));
+    writePlaneToFile(object.clusters.at(1));
 }
 
 inline void NMXClustererVerification::writePlaneToFile(nmx::cluster &plane) {
 
-    for (int i = 0; i < plane.npoints; i++)
-        m_file << plane.data.at(i) << " ";
-
+    for (unsigned int i = 0; i < plane.npoints; i++)
+        m_file << plane.data.at(i).strip << " ";
+    m_file << "\n";
+    for (unsigned int i = 0; i < plane.npoints; i++)
+        m_file << plane.data.at(i).time << " ";
+    m_file << "\n";
+    for (unsigned int i = 0; i < plane.npoints; i++)
+        m_file << plane.data.at(i).charge << " ";
     m_file << "\n";
 }
 
 inline uint32_t NMXClustererVerification::getMinorTime(uint32_t time) {
 
-    time = time >> nmx::IGNORE_BITS;
-    time = time & nmx::MINOR_BITMASK;
+    time = time >> m_ignoreBits;
+    time = time & m_minorBitmask;
 
     return time;
 }
 
 inline uint32_t NMXClustererVerification::getMajorTime(uint32_t time) {
 
-    return time >> nmx::IGNORE_BITS >> nmx::MINOR_BITS;
+    return time >> m_ignoreBits >> m_minorBits;
 }
 
 void NMXClustererVerification::endRun() {
 
-    while (m_nIn != m_nOut)
+    while ((m_In[0] != m_Out[0]) && (m_In[1] != m_Out[1]))
         std::this_thread::yield();
 
-    slideTimeWindow(nmx::MINOR_BITMASK, nmx::MINOR_BITMASK, 0);
+    slideTimeWindow(m_minorBitmask, m_minorBitmask, 0);
 }
 
 void NMXClustererVerification::reset() {
 
-    for (unsigned int idx = 0; idx < nmx::MAX_MINOR; idx++) {
-
-        m_time_ordered_buffer.at(idx).queue.at(0) = -1;
-        m_time_ordered_buffer.at(idx).queueLength.at(0) = 0;
-        m_time_ordered_buffer.at(idx).queue.at(1) = -1;
-        m_time_ordered_buffer.at(idx).queueLength.at(1) = 0;
+    for (unsigned int idx = 0; idx < m_maxMinor; idx++) {
 
         m_majortime_buffer.at(idx) = 0;
+    }
+
+    for (int i = 0; i < 2; i++) {
+        m_In[i] = 0;
+        m_Out[i] = 0;
     }
 }
 
@@ -359,6 +441,21 @@ NMXClustererVerification* NMXClustererVerification::getInstance() {
 
     return instance;
 }
+
+NMXClustererVerification* NMXClustererVerification::instance = 0;
+
+void NMXClustererVerification::printFullCluster(const nmx::fullCluster &cluster) {
+
+    std::cout << "NMX-Full cluster:\n";
+    std::cout << "    Associated event number : " << cluster.eventNo << std::endl;
+    for (int i = 0; i < 2; i++) {
+        auto &plane = cluster.clusters.at(i);
+        std::cout << "    " << (i ? "Y" : "X") << " - plane :\n";
+        std::cout << "        Number of points : " << plane.npoints << std::endl;
+        std::cout << "        Max-time         : " << plane.box.max_time << std::endl;
+    }
+}
+
 
 /*
 void NMXClustererVerification::printSortBuffer() {

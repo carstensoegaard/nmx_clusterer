@@ -15,8 +15,6 @@ NMXPlaneClusterer::NMXPlaneClusterer(NMXClusterManager &clusterManager, NMXClust
       m_nB(0),
       m_nC(0),
       m_nD(0),
-      m_latestClusterTime(0),
-      //m_nInserted(0),
       m_plane(-1),
       m_new_point(false),
       m_clusterManager(clusterManager),
@@ -58,6 +56,8 @@ bool NMXPlaneClusterer::addDataPoint(const nmx::data_point &point) {
 
     m_point_buffer = point;
     m_new_point = true;
+
+    return true;
 }
 
 void NMXPlaneClusterer::producer() {
@@ -77,7 +77,10 @@ void NMXPlaneClusterer::producer() {
         uint minorTime = getMinorTime(m_point_buffer.time);
         uint majorTime = getMajorTime(m_point_buffer.time);
 
-        if (m_verbose_level > 1) {
+        if (checkTrackPoint(m_point_buffer))
+            std::cout << "<NMXPlaneClusterer::producer> Track-point arrived for sorting!" << std::endl;
+
+        if (m_verbose_level > 0) {
             nmx::printPoint(m_point_buffer);
             std::cout << "B1 = " << minorTime << ", B2 = " << majorTime << ", B2_buffer[" << minorTime << "] = "
                       << m_majortime_buffer[minorTime] << " B2_buffer[0] = " << m_majortime_buffer.at(0)
@@ -143,12 +146,13 @@ void NMXPlaneClusterer::producer() {
 
                 default:
 
-                    std::cout << "Old data-point - omitting!\n";
+                    std::cout << "Old data-point - omitting!#¤¤%&/&%¤#\n";
+                    m_nOldPoints++;
             }
         }
 
 
-        if (m_verbose_level > 1) {
+        if (m_verbose_level > 2) {
             nmx::printTimeOrderedBuffer(m_time_ordered_buffer, m_SortQ);
             nmx::printMajorTimeBuffer(m_majortime_buffer);
         }
@@ -161,9 +165,12 @@ void NMXPlaneClusterer::consumer() {
 
     std::cout << "Started clustering thread!\n";
 
+    uint32_t lastFlush = 0;
+
     while (1) {
 
-        while ((m_nB <= m_nC) || m_nD) {
+        // May be replaced by guardC()
+        while ((m_nB == m_nC) || m_nD) {
             if (m_terminate && (m_nC == m_nB)) {
                 std::cout << "Stopped clustering thread!\n";
                 return;
@@ -171,18 +178,43 @@ void NMXPlaneClusterer::consumer() {
             std::this_thread::yield();
         }
 
-        if (m_nC % nmx::NCLEANUP == 0)
-            checkBoxes();
 
         uint idx = m_nC % nmx::MAX_MINOR;
 
+        if (m_verbose_level > 1)
+            std::cout << "Now extracting idx (" << m_ClusterQ[idx] << ", " << idx << ")" << std::endl;
+
         nmx::buffer &buf = m_time_ordered_buffer.at(m_ClusterQ[idx]).at(idx);
 
-        m_latestClusterTime = ((m_majortime_buffer.at(idx) << nmx::CLUSTER_MINOR_BITS) + idx) << nmx::IGNORE_BITS;
+        /*if (m_ClusterQ[idx] == 1 && idx == 43 && m_plane == 0) {
+            std::cout << "Buffer contains " << buf.npoints << " points." << std::endl;
+            for (unsigned int i = 0; i < buf.npoints; i++)
+                std::cout << "Point # " << i << " : time = " << buf.data.at(i).time << ", strip = "
+                          << buf.data.at(i).strip << ", charge = " << buf.data.at(i).charge << std::endl;
+        }*/
 
-        for (int ipoint = 0; ipoint < buf.npoints; ipoint++) {
+        for (unsigned int ipoint = 0; ipoint < buf.npoints; ipoint++) {
 
             nmx::data_point& point = buf.data.at(ipoint);
+
+            if ((point.time-lastFlush)/nmx::MAX_CLUSTER_TIME > 2) {
+                checkBoxes(point.time);
+                lastFlush = point.time;
+            }
+
+
+           /* if (m_ClusterQ[idx] == 1 && idx == 43 && m_plane == 0) {
+                std::cout << "Point # " << ipoint << " : time = " << point.time << ", strip = "
+                          << point.strip << ", charge = " << point.charge << std::endl;
+            }*/
+
+            bool check = checkTrackPoint(point);
+
+            /*if (m_ClusterQ[idx] == 1 && idx == 43 && m_plane == 0)
+                std::cout << "Check = " << check << std::endl;*/
+
+            if (check)
+                std::cout << "<NMXPlaneClusterer::consumer> Track-point arrived." << std::endl;
 
             if (point.strip >= nmx::STRIPS_PER_PLANE) {
                 std::cerr << "<ClusterAssembler::addPointToCluster> Strip # " << point.strip << " is larger than "
@@ -195,7 +227,7 @@ void NMXPlaneClusterer::consumer() {
 
             uint what = checkMask(point.strip, lo_idx, hi_idx);
 
-            if (m_verbose_level > 1) {
+            if (m_verbose_level > 2) {
                 std::cout << "lo-idx = " << (int) lo_idx << ", hi-idx = " << (int) hi_idx << std::endl;
                 std::cout << "What = " << what << std::endl;
                 m_boxes.printStack();
@@ -229,7 +261,7 @@ void NMXPlaneClusterer::consumer() {
 
                         case 0:
                             // Neither clusters are "old"
-                            if (m_verbose_level > 1)
+                            if (m_verbose_level > 2)
                                 std::cout << "Neither are old" << std::endl;
 
                             mergeAndInsert(lo_idx, hi_idx, point);
@@ -237,7 +269,7 @@ void NMXPlaneClusterer::consumer() {
 
                         case 1:
                             // Only lo-cluster is "old"
-                            if (m_verbose_level > 1)
+                            if (m_verbose_level > 2)
                                 std::cout << "Lo is old" << std::endl;
 
                             flushCluster(lo_idx);
@@ -246,7 +278,7 @@ void NMXPlaneClusterer::consumer() {
 
                         case 2:
                             // Only hi-cluster is "old"
-                            if (m_verbose_level > 1)
+                            if (m_verbose_level > 2)
                                 std::cout << "Hi is old" << std::endl;
 
                             flushCluster(hi_idx);
@@ -255,7 +287,7 @@ void NMXPlaneClusterer::consumer() {
 
                         case 3:
                             // Both clusters are "old"
-                            if (m_verbose_level > 1)
+                            if (m_verbose_level > 2)
                                 std::cout << "Both are old" << std::endl;
 
                             flushCluster(lo_idx);
@@ -282,6 +314,11 @@ void NMXPlaneClusterer::addToBuffer(const nmx::data_point &point, const uint min
 
     uint32_t i0 = m_SortQ[minorTime];
 
+    if (checkTrackPoint(point))
+        std::cout << "<NMXPlaneClusterer::addToBuffer> Track-point added to buffer at idx : (" << i0 << ", " << minorTime
+                  << ")" << std::endl;
+
+
     nmx::tbuffer &tbuf = m_time_ordered_buffer.at(i0);
     nmx::buffer &buf = tbuf.at(minorTime);
 
@@ -294,7 +331,7 @@ void NMXPlaneClusterer::moveToClusterer(uint d, uint minorTime, uint majorTime) 
     if (!nmx::checkD(d, "NMXPlaneClusterer::moveToClusterer"))
         throw 1;
 
-    if (m_verbose_level > 1) {
+    if (m_verbose_level > 0) {
         std::string s("\nWill move ");
         s.append(std::to_string(d));
         s.append(" entries to clusterer !\n");
@@ -307,8 +344,8 @@ void NMXPlaneClusterer::moveToClusterer(uint d, uint minorTime, uint majorTime) 
 
         uint idx = (i+m_nB)%nmx::MAX_MINOR;
 
-        if (m_verbose_level > 1)
-            std::cout << "Moving cluster with idx " << idx << std::endl;
+        /*if (m_verbose_level > 1)
+            std::cout << "Moving cluster with idx " << idx << std::endl;*/
 
         if (m_time_ordered_buffer.at(m_ClusterQ[idx]).at(idx).npoints > 0) {
             std::cout << "Buffer not empty!!!!!!!!!!!!!!!!!!!!\n";
@@ -327,8 +364,8 @@ void NMXPlaneClusterer::moveToClusterer(uint d, uint minorTime, uint majorTime) 
 
     m_nB += d;
 
-    if (m_verbose_level > 1)
-        std::cout << "Setting i1 to " << minorTime << std::endl;
+    /*if (m_verbose_level > 1)
+        std::cout << "Setting i1 to " << minorTime << std::endl;*/
 
     m_i1 = minorTime;
  }
@@ -407,15 +444,15 @@ bool NMXPlaneClusterer::insertInCluster(nmx::data_point &point) {
         return false;
     }
 
-    uint lo = getLoBound(point.strip);
-    uint hi = getHiBound(point.strip);
+    unsigned int lo = getLoBound(point.strip);
+    unsigned int hi = getHiBound(point.strip);
 
     int boxid = -1;
 
-    if (m_verbose_level > 0)
+    if (m_verbose_level > 2)
         nmx::printMask(m_mask);
 
-    for (uint istrip = lo; istrip <= hi; istrip++) {
+    for (unsigned int istrip = lo; istrip <= hi; istrip++) {
 
         boxid = m_mask.at(istrip);
 
@@ -423,22 +460,37 @@ bool NMXPlaneClusterer::insertInCluster(nmx::data_point &point) {
             break;
     }
 
-    if ((boxid < 0) || (boxid > nmx::NBOXES -1)) {
+    if ((boxid < 0) || (static_cast<unsigned int>(boxid) > nmx::NBOXES-1) ) {
         std::cerr << "<NMXPlaneClusterer::insertInCluster> Box id " << boxid << " which is not in range [0,"
                   << nmx::NBOXES -1 << "]\n";
     }
 
-    if (m_verbose_level > 2)
-        std::cout << "Inserting in cluster " << boxid << std::endl;
+    if (m_verbose_level > 2) {
+        nmx::printBox(boxid, &m_boxes);
+        nmx::printPoint(point);
+        std::cout << "inserted in cluster " << boxid << std::endl;
+    }
 
-    for (uint istrip = lo; istrip <= hi; istrip++)
+    for (unsigned int istrip = lo; istrip <= hi; istrip++)
         m_mask.at(istrip) = boxid;
 
     m_boxes.updateBox(boxid, point);
 
+    if (m_verbose_level > 2) {
+        std::cout << "After update:" << std::endl;
+        nmx::printBox(boxid, &m_boxes);
+    }
+
     m_cluster.at(point.strip) = point;
 
+    if (checkTrackPoint(point)) {
+        std::cout << "Track-point inserted in cluster " << boxid << std::endl;
+        nmx::printBox(boxid, &m_boxes);
+    }
+
     point = {0, 0, 0};
+
+    return true;
 }
 
 bool NMXPlaneClusterer::mergeAndInsert(uint32_t lo_idx, uint32_t hi_idx, nmx::data_point &point) {
@@ -514,6 +566,8 @@ bool NMXPlaneClusterer::mergeAndInsert(uint32_t lo_idx, uint32_t hi_idx, nmx::da
 
         pos += incr;
     }
+
+    return true;
 }
 
 bool NMXPlaneClusterer::flushCluster(const int boxid) {
@@ -536,10 +590,10 @@ bool NMXPlaneClusterer::flushCluster(const int boxid) {
         printBox(box);
     }
 
-    uint lo = getLoBound(box.min_strip);
-    uint hi = getHiBound(box.max_strip);
+    unsigned int lo = getLoBound(box.min_strip);
+    unsigned int hi = getHiBound(box.max_strip);
 
-    for (uint istrip = lo; istrip <= hi; istrip++) {
+    for (unsigned int istrip = lo; istrip <= hi; istrip++) {
 
         m_mask.at(istrip) = -1;
 
@@ -569,27 +623,28 @@ bool NMXPlaneClusterer::flushCluster(const int boxid) {
         m_clusterParing.insertClusterInQueue(m_plane, cluster_idx);
     }
 
-
     m_boxes.releaseBox(boxid);
 
     if (m_verbose_level > 2)
         nmx::printMask(m_mask);
-    }
 
-uint NMXPlaneClusterer::getLoBound(int strip) {
+    return true;
+}
+
+uint32_t NMXPlaneClusterer::getLoBound(int strip) {
 
     strip -= nmx::INCLUDE_N_NEIGHBOURS;
 
     while (true) {
 
         if (strip >= 0)
-            return static_cast<uint>(strip);
+            return static_cast<uint32_t>(strip);
 
         strip++;
     }
 }
 
-uint NMXPlaneClusterer::getHiBound(int strip) {
+uint32_t NMXPlaneClusterer::getHiBound(uint32_t strip) {
 
     strip += nmx::INCLUDE_N_NEIGHBOURS;
 
@@ -597,7 +652,7 @@ uint NMXPlaneClusterer::getHiBound(int strip) {
 
         if (strip < nmx::STRIPS_PER_PLANE)
 
-            return static_cast<uint>(strip);
+            return strip;
 
         strip--;
     }
@@ -611,12 +666,12 @@ void NMXPlaneClusterer::endRun() {
         std::cout << "END of run - flushing time-ordered buffer ...\n";
 
     while (m_nB != m_nC) {
-        if (verbose)
-            std::cout << "nB = " << m_nB << " != " << " nC = " << m_nC << std::endl;
+        /*if (verbose)
+            std::cout << "nB = " << m_nB << " != " << " nC = " << m_nC << std::endl;*/
         std::this_thread::yield();
     }
 
-    moveToClusterer(nmx::MINOR_BITMASK, nmx::MINOR_BITMASK, 0);
+    moveToClusterer(nmx::MAX_MINOR, nmx::MINOR_BITMASK, 0);
 
     while (m_nB != m_nC) {
         if (verbose)
@@ -683,7 +738,7 @@ void NMXPlaneClusterer::reset() {
     m_terminate = false;
 }
 
-void NMXPlaneClusterer::checkBoxes() {
+void NMXPlaneClusterer::checkBoxes(uint32_t latestTime) {
 
     int idx = m_boxes.getQueueTail();
 
@@ -694,15 +749,22 @@ void NMXPlaneClusterer::checkBoxes() {
 
         nmx::box &box = m_boxes.getBox(idx);
 
-        int diff = m_latestClusterTime - box.min_time;
+        int diff = latestTime - box.min_time;
 
-        if (m_verbose_level > 2)
-            std::cout << "Diff = " << m_latestClusterTime << " - " << box.min_time << " = " << diff;
+        if (m_verbose_level > 1)
+            std::cout << "<NMXPlaneClusterer::checkBoxes> Diff = " << latestTime << " - "
+                      << box.min_time << " = " << diff;
 
-        if (diff > nmx::MAX_CLUSTER_TIME) {
-            if (m_verbose_level > 2)
+        if (static_cast<unsigned int>(diff) > nmx::MAX_CLUSTER_TIME) {
+            if (m_verbose_level > 1)
                 std::cout << " which is larger than " << nmx::MAX_CLUSTER_TIME << " so flushing\n";
             flushCluster(idx);
+        }
+
+        if (diff < 0) {
+            std::cerr << "Diff = " << diff << " !!!" << std::endl;
+            std::cerr << "Algorithm does not expect negative values. Unpredicted results are likely to occur!"
+                      << std::endl;
         }
 
         idx = box.link2;
@@ -715,8 +777,13 @@ void NMXPlaneClusterer::guardB() {
 
     while (m_nB != m_nC)
         std::this_thread::yield();
-
 }
+
+/*void NMXPlaneClusterer::guardC() {
+
+    while (m_nB == m_nC || m_nD)
+        std::this_thread::yield();
+}*/
 
 void NMXPlaneClusterer::checkBitSum() {
 
@@ -754,4 +821,17 @@ void NMXPlaneClusterer::printInitialization() {
     std::cout << "\n";
     std::cout << "Verbosity level :          " << std::setw(10) << m_verbose_level << std::endl;
     std::cout << "\n";
+}
+
+bool NMXPlaneClusterer::checkTrackPoint(const nmx::data_point &point) {
+
+    if (!m_trackPoint)
+        return false;
+
+    if ((m_pointToTrack.time == point.time) &&
+        (m_pointToTrack.strip == point.strip) &&
+        (m_pointToTrack.charge == point.charge))
+        return true;
+
+     return false;
 }

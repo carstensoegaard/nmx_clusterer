@@ -25,9 +25,11 @@ public:
     void reset();
     void terminate() { m_terminate = true; }
 
+    uint64_t getNumberOfLateClusters() { return m_nLateClusters; }
+
    private:
 
-    std::array<std::array<unsigned int, nmx::CLUSTER_BUFFER_SIZE>, 2> m_queue;
+    std::array<std::array<unsigned int, nmx::NCLUSTERS>, 2> m_queue;
 
     std::array<unsigned int, 2> m_nIn;
     std::array<unsigned int, 2> m_nOut;
@@ -45,6 +47,8 @@ public:
 
     unsigned int m_verbose_level;
     bool m_terminate;
+
+    uint64_t m_nLateClusters = 0;
 
     NMXClusterManager &m_clusterManager;
     NMXLocationFinder  m_locationFinder;

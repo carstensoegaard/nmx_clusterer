@@ -3,6 +3,8 @@
 //
 
 #include <iostream>
+#include <thread>
+
 #include "NMXClusterManager.h"
 
 NMXClusterManager::NMXClusterManager()
@@ -17,10 +19,8 @@ int NMXClusterManager::getClusterFromStack(unsigned int plane) {
         std::cout << "<NMXClusterManager::gerClusterFromStack> Getting cluster from the stack!\n";
 
     if (m_stackHead.at(plane) == -1) {
-        std::cout << "<NMXClusterManager::getClusterFromStack> Stack " << (plane ? "Y" : "X") << " is empty!"
-                  << std::endl;
-        throw 1;
-        //return m_stackHead.at(plane);
+        m_nFailedClusterRequests++;
+        std::this_thread::yield();
     }
 
     m_mutex[plane].lock();
@@ -115,7 +115,7 @@ void NMXClusterManager::reset() {
 
         nmx::cluster_buffer &buffer = m_buffer.at(plane);
 
-        for (int i = 0; i < nmx::NCLUSTERS; i++) {
+        for (unsigned int i = 0; i < nmx::NCLUSTERS; i++) {
 
             nmx::cluster &cluster = buffer.at(i);
 

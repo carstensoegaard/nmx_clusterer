@@ -15,6 +15,7 @@
 
 namespace nmx {
 
+
     static bool checkD(uint d, std::string s) {
 
         if (d > nmx::MAX_MINOR) {
@@ -121,7 +122,7 @@ namespace nmx {
 
     static void printBox(int boxid, BoxAdministration *boxes) {
 
-        std::cout << "Box-id " << std::endl;
+        std::cout << "Box-id " << boxid << std::endl;
 
         nmx::box box = boxes->getBox(boxid);
 

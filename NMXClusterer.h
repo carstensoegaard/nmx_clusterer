@@ -23,6 +23,12 @@ public:
     void reset();
     void terminate();
 
+    uint64_t getNumberOfOldPointsX() { return m_XplaneClusterer.getNumberOfOldPoints(); }
+    uint64_t getNumberOfOldPointsY() { return m_YplaneClusterer.getNumberOfOldPoints(); }
+    uint64_t getFailedClusterRequests() { return m_clusterManager.getFailedClusterRequests(); }
+    uint64_t getNumberOfLateClusters() { return m_clusterPairing.getNumberOfLateClusters(); }
+
+
 private:
 
     NMXPlaneClusterer m_XplaneClusterer;

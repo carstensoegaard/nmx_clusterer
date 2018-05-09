@@ -34,26 +34,27 @@ public:
     void terminate() { m_terminate = true; }
     void reset();
 
-    std::vector<nmx::cluster>& getProducedClusters() { return m_produced_clusters; }
-
     void setVerboseLevel(uint level = 0) { m_verbose_level = level; }
+
+    uint64_t getNumberOfOldPoints() { return m_nOldPoints; }
+
+    void setTrackPoint(bool set = false, uint32_t time = 0, uint32_t strip = 0, uint32_t charge = 0)
+    { m_trackPoint = set; m_pointToTrack.time = time; m_pointToTrack.strip = strip; m_pointToTrack.charge = charge; }
 
 
 private:
 
-    uint m_verbose_level;
+    unsigned int m_verbose_level;
 
-    uint m_i1;
+    uint32_t m_i1;
 
     uint32_t m_nB;
     uint32_t m_nC;
     uint32_t m_nD;
 
-    uint32_t m_latestClusterTime;
-
-    //unsigned int m_nInserted;
-
     int m_plane;
+
+    uint64_t m_nOldPoints;
 
     std::thread pro;
     std::thread con;
@@ -69,7 +70,6 @@ private:
     nmx::data_point m_point_buffer;
 
     nmx::buffer_data m_cluster;
-    std::vector<nmx::cluster> m_produced_clusters;
 
     BoxAdministration m_boxes;
 
@@ -91,15 +91,21 @@ private:
     bool insertInCluster(nmx::data_point &point);
     bool mergeAndInsert(uint32_t lo_idx, uint32_t hi_idx, nmx::data_point &point);
     bool flushCluster(int boxid);
-    uint getLoBound(int strip);
-    uint getHiBound(int strip);
+    uint32_t getLoBound(int strip);
+    uint32_t getHiBound(uint32_t strip);
 
-    void checkBoxes();
+    void checkBoxes(uint32_t latestTime);
 
     void guardB();
+    //void guardC();
 
     void checkBitSum();
     void printInitialization();
+
+    bool m_trackPoint = false;
+    nmx::data_point m_pointToTrack;
+    bool checkTrackPoint(const nmx::data_point &point);
+
 };
 
 #endif //NMX_CLUSTERER_CLUSTERER_H

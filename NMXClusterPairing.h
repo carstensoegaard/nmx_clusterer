@@ -34,7 +34,7 @@ public:
     std::array<unsigned int, 2> m_nIn;
     std::array<unsigned int, 2> m_nOut;
 
-    std::array<nmx::clusterParingEntry, nmx::MAX_MINOR> m_time_ordered_buffer;
+    std::array<nmx::clusterParingEntry, nmx::CLUSTER_MAX_MINOR> m_time_ordered_buffer;
     nmx::row_array m_majortime_buffer;
     uint32_t m_i1;
 
@@ -77,9 +77,9 @@ public:
 
     void printSortBuffer();
     void printQueue();
+    void printQmatrix();
 
     void checkSortBuffer();
-
 };
 
 #endif //PROJECT_PAIRCLUSTERS_H

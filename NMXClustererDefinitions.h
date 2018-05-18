@@ -20,7 +20,7 @@ namespace nmx {
     };
 
     // Define an array of length NROWS
-    typedef std::array<uint32_t, MAX_MINOR> row_array;
+    typedef std::array<uint32_t, DATA_MAX_MINOR> row_array;
     // Define an array of length CHANNELS_PER_PLANE
     typedef std::array<int32_t, STRIPS_PER_PLANE> col_array;
 
@@ -31,10 +31,10 @@ namespace nmx {
         buffer_data data;
     };
 
-    struct idx_buffer {
+    /*struct idx_buffer {
         int nidx;
         std::array<int, 100> data;
-    };
+    };*/
 
     struct clusterParingEntry {
 
@@ -42,7 +42,7 @@ namespace nmx {
         std::array<unsigned int, 2> queueLength;
     };
 
-    typedef std::array<buffer, MAX_MINOR> tbuffer;
+    typedef std::array<buffer, DATA_MAX_MINOR> tbuffer;
     typedef std::array<tbuffer, 2> time_ordered_buffer;
 
     // Cluster formation element definitions

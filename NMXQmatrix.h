@@ -34,6 +34,15 @@ namespace nmx {
             m_dim[1] = dimJ;
         }
 
+        std::array<unsigned int, 2> getDIM(){
+
+            std::array<unsigned int, 2> ret;
+            ret.at(0) = m_dim[0];
+            ret.at(1) = m_dim[1];
+
+            return ret;
+        };
+
         void setQ(unsigned int i, unsigned int j, double val) {
             if ((i >= m_dim[0]) || (j >= m_dim[1]))
                 std::cout << "<Qmatrix::set> Invalid indices i,j = " << i << "," << j << std::endl;

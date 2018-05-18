@@ -18,13 +18,13 @@ namespace nmx {
 
     static bool checkD(uint d, std::string s) {
 
-        if (d > nmx::MAX_MINOR) {
+        if (d > nmx::DATA_MAX_MINOR) {
             std::string sout("\n<");
             sout.append(s);
             sout.append("> Cannot move ");
             sout.append(std::to_string(d));
             sout.append(" entries to clusterer !\nMax is ");
-            sout.append(std::to_string(nmx::MAX_MINOR));
+            sout.append(std::to_string(nmx::DATA_MAX_MINOR));
             sout.append(" FATAL ERROR");
             std::cout << sout;
             return false;
@@ -52,8 +52,8 @@ namespace nmx {
 
     static bool checkMinorTime(uint32_t minortime, std::string s) {
 
-        if (minortime >= nmx::MAX_MINOR) {
-            std::cerr << "<" << s << "> Minor-time = " << minortime << " max minor-time = " << nmx::MAX_MINOR - 1
+        if (minortime >= nmx::DATA_MAX_MINOR) {
+            std::cerr << "<" << s << "> Minor-time = " << minortime << " max minor-time = " << nmx::DATA_MAX_MINOR - 1
                       << "\n";
             std::cerr << " *** Point will not be added to the buffer! ***\n";
             return false;
@@ -76,7 +76,7 @@ namespace nmx {
 
         std::cout << "Time ordered buffer :\n";
 
-        for (uint idx = 0; idx < nmx::MAX_MINOR; idx++) {
+        for (uint idx = 0; idx < nmx::DATA_MAX_MINOR; idx++) {
 
             auto tbuf = time_ordered_buffer.at(SortQ.at(idx));
             auto buf = tbuf.at(idx);
@@ -136,12 +136,12 @@ namespace nmx {
 
         std::cout <<"\nMajorTimeBuffer:\n";
 
-        for (uint idx = 0; idx < nmx::MAX_MINOR; idx++) {
+        for (uint idx = 0; idx < nmx::DATA_MAX_MINOR; idx++) {
             if (idx%32 == 0)
                 std::cout << "\nIdx : ";
             std::cout << std::setw(4) << idx << " ";
         }
-        for (uint idx = 0; idx < nmx::MAX_MINOR; idx++) {
+        for (uint idx = 0; idx < nmx::DATA_MAX_MINOR; idx++) {
             if (idx%32 == 0)
                 std::cout << "\nVal : ";
             std::cout << std::setw(4) << majortime_buffer.at(idx) << " ";
@@ -157,7 +157,7 @@ namespace nmx {
 
         uint shifts = 0;
 
-        for (uint idx = 0; idx < nmx::MINOR_BITMASK - 1; idx++) {
+        for (uint idx = 0; idx < nmx::DATA_MINOR_BITMASK - 1; idx++) {
             if (majortime_buffer.at(idx) < majortime_buffer.at(idx + 1)) {
                 std::cout << "Wrong order in B2 buffer\n";
                 ok = false;
@@ -211,9 +211,15 @@ namespace nmx {
         }
 
         std::cout << (plane ? "Y" : "X") << "-queue: ";
+
         while (idx >= 0) {
             std::cout << idx << " -> ";
-            idx = manager.getLink1(plane, idx);
+            int newIdx = manager.getLink1(plane, idx);
+            if (newIdx == idx) {
+                std::cout << "Cluster " << idx << " is linked to itself!" << std::endl;
+                break;
+            }
+            idx =  newIdx;
         }
         std::cout << "\n";
     }

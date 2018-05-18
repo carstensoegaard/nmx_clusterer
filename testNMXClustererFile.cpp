@@ -58,7 +58,7 @@ int main() {
     std::ofstream file;
     file.open("NMX_input_events.txt");
 
-    unsigned int nrepeats = 1;
+    unsigned int nrepeats = 100;
     unsigned int multiplier = 5;
 
     bool cont = true;
@@ -84,7 +84,7 @@ int main() {
 
         std::cout << "*** Repeat # " << repeat << " ***\n";
 
-        for (unsigned int ievent = 0; ievent < /*1*/events.size(); ievent++) {
+        for (unsigned int ievent = 0; ievent < events.size(); ievent++) {
 
             // Create a copy of the event
             nmx::fullCluster ev = events.at(ievent);

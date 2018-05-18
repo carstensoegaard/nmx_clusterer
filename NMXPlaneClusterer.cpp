@@ -11,7 +11,7 @@
 NMXPlaneClusterer::NMXPlaneClusterer(NMXClusterManager &clusterManager, NMXClusterPairing &clusterPairing,
                                      std::mutex &mutex)
     : m_verbose_level(0),
-      m_i1(nmx::MINOR_BITMASK),
+      m_i1(nmx::DATA_MINOR_BITMASK),
       m_nB(0),
       m_nC(0),
       m_nD(0),
@@ -93,20 +93,20 @@ void NMXPlaneClusterer::producer() {
 
                 if (m_verbose_level > 0) {
                     std::cout << "Case 1\n";
-                    std::cout << "Moving " << nmx::MINOR_BITMASK - m_i1 + std::min(m_i1, minorTime) +1 << " points\n";
+                    std::cout << "Moving " << nmx::DATA_MINOR_BITMASK - m_i1 + std::min(m_i1, minorTime) +1 << " points\n";
                 }
 
-                moveToClusterer(nmx::MINOR_BITMASK - m_i1 + std::min(m_i1, minorTime) + 1, minorTime, majorTime);
+                moveToClusterer(nmx::DATA_MINOR_BITMASK - m_i1 + std::min(m_i1, minorTime) + 1, minorTime, majorTime);
                 addToBuffer(m_point_buffer, minorTime);
 
             } else { // majorTime > (m_majortime_buffer.at(0) + 1)
 
                 if (m_verbose_level > 0) {
                     std::cout << "Case 2\n";
-                    std::cout << "Moving " << nmx::MINOR_BITMASK << " points\n";
+                    std::cout << "Moving " << nmx::DATA_MINOR_BITMASK << " points\n";
                 }
 
-                moveToClusterer(nmx::MINOR_BITMASK+1, minorTime, majorTime);
+                moveToClusterer(nmx::DATA_MINOR_BITMASK+1, minorTime, majorTime);
                 addToBuffer(m_point_buffer, minorTime);
 
                 guardB();
@@ -146,7 +146,8 @@ void NMXPlaneClusterer::producer() {
 
                 default:
 
-                    std::cout << "Old data-point - omitting!#¤¤%&/&%¤#\n";
+                    if (m_verbose_level > 0)
+                        std::cout << "Old data-point - omitting!\n";
                     m_nOldPoints++;
             }
         }
@@ -179,7 +180,7 @@ void NMXPlaneClusterer::consumer() {
         }
 
 
-        uint idx = m_nC % nmx::MAX_MINOR;
+        uint idx = m_nC % nmx::DATA_MAX_MINOR;
 
         if (m_verbose_level > 1)
             std::cout << "Now extracting idx (" << m_ClusterQ[idx] << ", " << idx << ")" << std::endl;
@@ -228,7 +229,7 @@ void NMXPlaneClusterer::consumer() {
             uint what = checkMask(point.strip, lo_idx, hi_idx);
 
             if (m_verbose_level > 2) {
-                std::cout << "lo-idx = " << (int) lo_idx << ", hi-idx = " << (int) hi_idx << std::endl;
+                std::cout << "lo-idx = " << lo_idx << ", hi-idx = " << hi_idx << std::endl;
                 std::cout << "What = " << what << std::endl;
                 m_boxes.printStack();
                 m_boxes.printQueue();
@@ -342,7 +343,7 @@ void NMXPlaneClusterer::moveToClusterer(uint d, uint minorTime, uint majorTime) 
 
     for (uint i = 0; i < d; ++i) {
 
-        uint idx = (i+m_nB)%nmx::MAX_MINOR;
+        uint idx = (i+m_nB)%nmx::DATA_MAX_MINOR;
 
         /*if (m_verbose_level > 1)
             std::cout << "Moving cluster with idx " << idx << std::endl;*/
@@ -370,15 +371,28 @@ void NMXPlaneClusterer::moveToClusterer(uint d, uint minorTime, uint majorTime) 
     m_i1 = minorTime;
  }
 
-uint NMXPlaneClusterer::checkMask(uint strip, int &lo_idx, int &hi_idx) {
+unsigned int NMXPlaneClusterer::checkMask(uint strip, int &lo_idx, int &hi_idx) {
 
     // Return values :
     //     0 : Not in cluster
     //     1 : In a cluster
     //     2 : At the boundary of two clusters, which are to be merged
 
-    lo_idx = m_mask.at(getLoBound(strip));
-    hi_idx = m_mask.at(getHiBound(strip));
+    if (strip >= nmx::STRIPS_PER_PLANE) {
+        std::cerr << "NMXPlaneClusterer::checkMask> Out of bounds ! Provided strip number = " << strip
+                  << " Range [0 - " << nmx::STRIPS_PER_PLANE-1 << "]" << std::endl;
+    }
+
+    uint32_t loBound = getLoBound(strip);
+    uint32_t hiBound = getHiBound(strip);
+
+    if (loBound >= nmx::STRIPS_PER_PLANE || hiBound >= nmx::STRIPS_PER_PLANE) {
+        std::cerr << "NMXPlaneClusterer::checkMask> Out of bounds ! Lo = " << loBound << ", hi = " << hiBound
+                  << " Range [0 - " << nmx::STRIPS_PER_PLANE-1 << "]" << std::endl;
+    }
+
+    lo_idx = m_mask.at(loBound);
+    hi_idx = m_mask.at(hiBound);
 
     if (m_verbose_level > 2)
         nmx::printMask(m_mask);
@@ -419,6 +433,11 @@ bool NMXPlaneClusterer::newCluster(nmx::data_point &point) {
     uint lo = getLoBound(point.strip);
     uint hi = getHiBound(point.strip);
 
+    if (lo >= nmx::STRIPS_PER_PLANE || hi >= nmx::STRIPS_PER_PLANE) {
+        std::cerr << "NMXPlaneClusterer::newCluster> Out of bounds ! Lo = " << lo << ", hi = " << hi
+                  << " Range [0 - " << nmx::STRIPS_PER_PLANE - 1 << "]" << std::endl;
+    }
+
     for (uint istrip = lo; istrip <= hi; istrip++)
         m_mask.at(istrip) = newbox;
 
@@ -446,6 +465,11 @@ bool NMXPlaneClusterer::insertInCluster(nmx::data_point &point) {
 
     unsigned int lo = getLoBound(point.strip);
     unsigned int hi = getHiBound(point.strip);
+
+    if (lo >= nmx::STRIPS_PER_PLANE || hi >= nmx::STRIPS_PER_PLANE) {
+        std::cerr << "NMXPlaneClusterer::insertInCluster> Out of bounds ! Lo = " << lo << ", hi = " << hi
+                  << " Range [0 - " << nmx::STRIPS_PER_PLANE - 1 << "]" << std::endl;
+    }
 
     int boxid = -1;
 
@@ -495,8 +519,19 @@ bool NMXPlaneClusterer::insertInCluster(nmx::data_point &point) {
 
 bool NMXPlaneClusterer::mergeAndInsert(uint32_t lo_idx, uint32_t hi_idx, nmx::data_point &point) {
 
-    if (m_verbose_level > 2)
-        std::cout << "Merging clusters ";
+    bool local_verbose = false;
+
+    if (lo_idx >= nmx::NBOXES || hi_idx >= nmx::NBOXES) {
+        std::cerr << "<NMX::PlaneClusterer::mergeAndInsert> Indexes out of range! lo-idx = " << lo_idx << ", hi-idx = "
+                  << hi_idx << " Range = [0," << nmx::NBOXES-1 << "]" << std::endl;
+        return false;
+    }
+
+    if (m_verbose_level > 2 || local_verbose) {
+        std::cout << "Merging clusters :" << std::endl;
+        nmx::printBox(lo_idx, &m_boxes);
+        nmx::printBox(hi_idx, &m_boxes);
+    }
 
     if (!nmx::checkPoint(point, "NMXPlaneClusterer::mergeAndInsert"))
         return false;
@@ -513,7 +548,7 @@ bool NMXPlaneClusterer::mergeAndInsert(uint32_t lo_idx, uint32_t hi_idx, nmx::da
     uint pos;
     uint end;
 
-    if (lo_boxsize > hi_boxsize) {
+    if (lo_boxsize >= hi_boxsize) {
         final_cluster = lo_idx;
         remove_cluster = hi_idx;
         incr = 1;
@@ -521,9 +556,7 @@ bool NMXPlaneClusterer::mergeAndInsert(uint32_t lo_idx, uint32_t hi_idx, nmx::da
         end = m_boxes.getBox(hi_idx).max_strip + nmx::INCLUDE_N_NEIGHBOURS;
         m_boxes.getBox(final_cluster).max_strip = m_boxes.getBox(remove_cluster).max_strip;
         m_boxes.getBox(final_cluster).max_time = m_boxes.getBox(remove_cluster).max_time;
-    }
-
-    if (lo_boxsize < hi_boxsize) {
+    } else {
         final_cluster = hi_idx;
         remove_cluster = lo_idx;
         incr = -1;
@@ -533,39 +566,34 @@ bool NMXPlaneClusterer::mergeAndInsert(uint32_t lo_idx, uint32_t hi_idx, nmx::da
         m_boxes.getBox(final_cluster).min_time = m_boxes.getBox(remove_cluster).min_time;
     }
 
-    if (lo_boxsize == hi_boxsize) {
-        if (lo_idx > hi_idx) {
-            final_cluster = lo_idx;
-            remove_cluster = hi_idx;
-            incr = 1;
-            pos = m_boxes.getBox(lo_idx).max_strip + nmx::INCLUDE_N_NEIGHBOURS;
-            end = m_boxes.getBox(hi_idx).max_strip + nmx::INCLUDE_N_NEIGHBOURS;
-            m_boxes.getBox(final_cluster).max_strip = m_boxes.getBox(remove_cluster).max_strip;
-            m_boxes.getBox(final_cluster).max_time = m_boxes.getBox(remove_cluster).max_time;
-        } else {
-            final_cluster = hi_idx;
-            remove_cluster = lo_idx;
-            incr = -1;
-            pos = m_boxes.getBox(hi_idx).max_strip - nmx::INCLUDE_N_NEIGHBOURS;
-            end = m_boxes.getBox(lo_idx).min_strip - nmx::INCLUDE_N_NEIGHBOURS;
-            m_boxes.getBox(final_cluster).min_strip = m_boxes.getBox(remove_cluster).min_strip;
-            m_boxes.getBox(final_cluster).min_time = m_boxes.getBox(remove_cluster).min_time;
-        }
-    }
-
-    if (m_verbose_level > 2) {
-        std::cout << "Merging cluster " << (int) remove_cluster << " into cluster " << (int) final_cluster << std::endl;
-        std::cout << "Resetting box " << (int) remove_cluster << std::endl;
+    if (m_verbose_level > 2 || local_verbose) {
+        std::cout << "Merging cluster " << remove_cluster << ": " << std::endl;
+        nmx::printBox(remove_cluster, &m_boxes);
+        std::cout << "Into cluster " << final_cluster << ": " << std::endl;
+        nmx::printBox(final_cluster, &m_boxes);
+        std::cout << "Resetting box " << remove_cluster << std::endl;
     }
 
     m_boxes.releaseBox(static_cast<const uint>(remove_cluster));
 
+    if (m_verbose_level > 2 || local_verbose)
+        std::cout << "Changing mask from " << pos << " to " << end << std::endl;
+
     while (pos != end + incr) {
+
+        if (pos >= nmx::STRIPS_PER_PLANE) {
+            std::cerr << "NMXPlaneClusterer::mergeAndInsert> Out of bounds ! Pos = " << pos
+                      << " Range [0 - " << nmx::STRIPS_PER_PLANE - 1 << "]" << std::endl;
+        }
 
         m_mask.at(pos) = final_cluster;
 
         pos += incr;
+        if (pos >= nmx::STRIPS_PER_PLANE || pos < 0)
+            break;
     }
+
+    m_verbose_level = 0;
 
     return true;
 }
@@ -592,6 +620,11 @@ bool NMXPlaneClusterer::flushCluster(const int boxid) {
 
     unsigned int lo = getLoBound(box.min_strip);
     unsigned int hi = getHiBound(box.max_strip);
+
+    if (lo >= nmx::STRIPS_PER_PLANE || hi >= nmx::STRIPS_PER_PLANE) {
+        std::cerr << "NMXPlaneClusterer::flushCluster> Out of bounds ! Lo = " << lo << ", hi = " << hi
+                  << " Range [0 - " << nmx::STRIPS_PER_PLANE - 1 << "]" << std::endl;
+    }
 
     for (unsigned int istrip = lo; istrip <= hi; istrip++) {
 
@@ -671,7 +704,7 @@ void NMXPlaneClusterer::endRun() {
         std::this_thread::yield();
     }
 
-    moveToClusterer(nmx::MAX_MINOR, nmx::MINOR_BITMASK, 0);
+    moveToClusterer(nmx::DATA_MAX_MINOR, nmx::DATA_MINOR_BITMASK, 0);
 
     while (m_nB != m_nC) {
         if (verbose)
@@ -691,15 +724,15 @@ void NMXPlaneClusterer::endRun() {
 
 inline uint32_t NMXPlaneClusterer::getMinorTime(uint32_t time) {
 
-    time = time >> nmx::IGNORE_BITS;
-    time = time & nmx::MINOR_BITMASK;
+    time = time >> nmx::DATA_IGNORE_BITS;
+    time = time & nmx::DATA_MINOR_BITMASK;
 
     return time;
 }
 
 inline uint32_t NMXPlaneClusterer::getMajorTime(uint32_t time) {
 
-    return time >> nmx::IGNORE_BITS >> nmx::MINOR_BITS;
+    return time >> nmx::DATA_IGNORE_BITS >> nmx::DATA_MINOR_BITS;
 }
 
 void NMXPlaneClusterer::reset() {
@@ -709,7 +742,7 @@ void NMXPlaneClusterer::reset() {
 
         nmx::tbuffer &buf = m_time_ordered_buffer.at(index0);
 
-        for (uint index1 = 0; index1 < nmx::MAX_MINOR; index1++) {
+        for (uint index1 = 0; index1 < nmx::DATA_MAX_MINOR; index1++) {
 
             auto &buffer = buf.at(index1);
 
@@ -721,14 +754,14 @@ void NMXPlaneClusterer::reset() {
     }
 
     // Reset i1
-    m_i1 = nmx::MINOR_BITMASK;
+    m_i1 = nmx::DATA_MINOR_BITMASK;
 
     // Reset the mask
     for (uint idx = 0; idx < m_mask.size(); idx++)
         m_mask.at(idx) = -1;
 
     // Reset major-time buffer
-    for (uint i = 0; i < nmx::MAX_MINOR; ++i) {
+    for (uint i = 0; i < nmx::DATA_MAX_MINOR; ++i) {
         m_majortime_buffer.at(i) = 0;
         m_SortQ.at(i) = 0;
         m_ClusterQ.at(i) = 1;
@@ -787,7 +820,7 @@ void NMXPlaneClusterer::guardB() {
 
 void NMXPlaneClusterer::checkBitSum() {
 
-    if (nmx::IGNORE_BITS + nmx::MINOR_BITS + nmx::MAJOR_BITS != 32) {
+    if (nmx::DATA_IGNORE_BITS + nmx::DATA_MINOR_BITS + nmx::DATA_MAJOR_BITS != 32) {
         std::cout << std::setfill('*') << std::setw(40) << "*" << std::endl;
         std::cout << std::setfill('*') << std::setw(40) << "*" << std::endl;
         std::cout << "*" << std::setfill(' ') << std::setw(38) << " " << "*\n";
@@ -805,19 +838,15 @@ void NMXPlaneClusterer::printInitialization() {
 
     std::cout << "\n\nInitialising NMX-clusterer with the following parameters:\n\n";
     std::cout << "Number of strips :         " << std::setw(10) << nmx::STRIPS_PER_PLANE << std::endl;
-    std::cout << "Bits to ignore :           " << std::setw(10) << nmx::IGNORE_BITS << std::endl;
-    std::cout << "Minor bits :               " << std::setw(10) << nmx::MINOR_BITS << std::endl;
-    std::cout << "Major bits :               " << std::setw(10) << nmx::MAJOR_BITS << std::endl;
+    std::cout << "Bits to ignore :           " << std::setw(10) << nmx::DATA_IGNORE_BITS << std::endl;
+    std::cout << "Minor bits :               " << std::setw(10) << nmx::DATA_MINOR_BITS << std::endl;
+    std::cout << "Major bits :               " << std::setw(10) << nmx::DATA_MAJOR_BITS << std::endl;
     std::cout << "Neighbours to include :    " << std::setw(10) << nmx::INCLUDE_N_NEIGHBOURS << std::endl;
     std::cout << "Maximum time for cluster : " << std::setw(10) << nmx::MAX_CLUSTER_TIME << std::endl;
     std::cout << "Number of boxes :          " << std::setw(10) << nmx::NBOXES << std::endl;
     std::cout << "\n";
-    std::cout << "Max IGNORE :               " << std::setw(10) << nmx::MAX_IGNORE << std::endl;
-    std::cout << "Max MINOR :                " << std::setw(10) << nmx::MAX_MINOR << std::endl;
-    std::cout << "Max MAJOR :                " << std::setw(10) << nmx::MAX_MAJOR << std::endl;
-    std::cout << "IGNORE bit-mask :          " << std::setw(10) << nmx::IGNORE_BITMASK << std::endl;
-    std::cout << "MINOR bit-mask :           " << std::setw(10) << nmx::MINOR_BITMASK << std::endl;
-    std::cout << "MAJOR bit-mask :           " << std::setw(10) << nmx::MAJOR_BITMASK << std::endl;
+    std::cout << "Max MINOR :                " << std::setw(10) << nmx::DATA_MAX_MINOR << std::endl;
+    std::cout << "MINOR bit-mask :           " << std::setw(10) << nmx::DATA_MINOR_BITMASK << std::endl;
     std::cout << "\n";
     std::cout << "Verbosity level :          " << std::setw(10) << m_verbose_level << std::endl;
     std::cout << "\n";

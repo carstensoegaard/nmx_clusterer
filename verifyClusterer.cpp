@@ -21,21 +21,42 @@ int main() {
 
     VerifyClusters verifier;
 
-    for (unsigned int icluster = 0; icluster < clusters.size(); icluster++)
+    int old = -1;
+
+    std::cout << "Associating " << clusters.size() << " clusters with " << events.size() << " events ..." << std::endl;
+    for (unsigned int icluster = 0; icluster < clusters.size(); icluster++) {
+        int percent = 100*icluster/clusters.size();
+        if (((percent % 10) == 0) && (percent != old)) {
+            std::cout << percent << " % " << std::flush;
+            old = percent;
+        }
         verifier.associateClusterWithEvent(clusters.at(icluster), events);
+    }
+    std::cout << "completed!" << std::endl;
 
     WriteVerificationToDisk writer;
 
     auto eventIter = events.begin();
+    int matched = 0;
+    old = -1;
 
+    std::cout << "Matching " << events.size() << " events with " << clusters.size() << " clusters ..." << std::endl;
     while (eventIter != events.end()) {
+
+        int percent = 100*matched/events.size();
+        if (((percent % 10) == 0) && (percent != old)) {
+            std::cout << percent << " % " << std::flush;
+            old = percent;
+        }
 
         std::vector<nmx::fullCluster> matching = verifier.findMatchingClusters(*eventIter, clusters);
 
         writer.write(*eventIter, matching);
 
         eventIter++;
+        matched++;
     }
+    std::cout << "completed!" << std::endl;
 
     return 1;
 }

@@ -23,7 +23,7 @@ void WriteVerificationToDisk::write(const nmx::fullCluster &event,
 
 void WriteVerificationToDisk::writeEventToFile(unsigned int eventNo, const nmx::fullCluster &event) {
 
-    std::cout << "Writing event # " << eventNo << " to file!\n";
+    //std::cout << "Writing event # " << eventNo << " to file!\n";
     m_file << "Event # " << eventNo << std::endl;
     writeObjectToFile(event);
 }
@@ -44,7 +44,7 @@ void WriteVerificationToDisk::writeClustersToFile(const std::vector<nmx::fullClu
 
 inline void WriteVerificationToDisk::writeObjectToFile(const nmx::fullCluster &object) {
 
-    std::cout << "Writing object to file\n";
+    //std::cout << "Writing object to file\n";
 
     m_file << "X:\n";
     writePlaneToFile(object.clusters.at(0));

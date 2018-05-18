@@ -15,18 +15,30 @@ NMXClusterManager::NMXClusterManager()
 
 int NMXClusterManager::getClusterFromStack(unsigned int plane) {
 
-    if (m_verboseLevel > 2)
-        std::cout << "<NMXClusterManager::gerClusterFromStack> Getting cluster from the stack!\n";
+    bool firstYield = true;
 
-    if (m_stackHead.at(plane) == -1) {
+    while (m_stackHead.at(plane) == -1) {
         m_nFailedClusterRequests++;
+        if (firstYield) {
+            std::cout << "<NMXClusterManager::getClusterFromStack> Stack " << (plane ? "Y" : "X")
+                      << " empty - yielding thread!" << std::endl;
+            firstYield = false;
+        }
         std::this_thread::yield();
     }
 
+    if (!firstYield)
+        std::cout << "<NMXClusterManager::getClusterFromStack> Thread released!" << std::endl;
+
     m_mutex[plane].lock();
+
+    if (m_verboseLevel > 2)
+        std::cout << "<NMXClusterManager::gerClusterFromStack> Getting cluster from stack "
+                  << (plane ? "Y" : "X") << "!" << std::endl;
 
     if (m_verboseLevel > 2) {
         std::cout << "Before:\n";
+        std::cout << "Stack-head = " << m_stackHead.at(plane) << ", stack-tail = " << m_stackTail.at(plane) << std::endl;
         printStack(plane);
     }
 
@@ -40,12 +52,14 @@ int NMXClusterManager::getClusterFromStack(unsigned int plane) {
     m_buffer.at(plane).at(idx).box.link1 = -1;
 
     if (m_verboseLevel > 2) {
-        std::cout << "New stack-head = " << m_stackHead.at(plane) << ", stack-tail = " << m_stackTail.at(plane) << std::endl;
         std::cout << "After:\n";
+        std::cout << "Stack-head = " << m_stackHead.at(plane) << ", stack-tail = " << m_stackTail.at(plane) << std::endl;
         printStack(plane);
     }
 
     m_mutex[plane].unlock();
+
+    m_verboseLevel = 0;
 
     return idx;
 }
@@ -66,8 +80,6 @@ void NMXClusterManager::returnClusterToStack(unsigned int plane, unsigned int id
     if (m_verboseLevel > 0)
         std::cout << "<NMXClusterManager::returnClusterToStack> StackHead = " << stackHead << ", stackTail = "
                   << stackTail << std::endl;
-
-
 
     if (stackTail >= 0) // Stack is not empty
         m_buffer.at(plane).at(stackTail).box.link1 = idx; // Set link1 of the stack-tail to the new index.

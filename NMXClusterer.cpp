@@ -23,6 +23,12 @@ void NMXClusterer::addDatapoint(unsigned int plane, nmx::data_point &point) {
         return;
     }
 
+    if (point.strip >= nmx::STRIPS_PER_PLANE) {
+        std::cerr << "<NMXClusterer::addDatapoint> Stip value of data-point out of range ! Value = "
+                  << point.strip << " Valid range = [0, " << nmx::STRIPS_PER_PLANE-1 << "]" << std::endl;
+        return;
+    }
+
     if (plane == 0)
         m_XplaneClusterer.addDataPoint(point);
     else

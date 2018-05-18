@@ -86,7 +86,7 @@ private:
     void addToBuffer(const nmx::data_point &point, uint minorTime);
     void moveToClusterer(uint d, uint minorTime, uint majorTime);
 
-    uint checkMask(uint strip, int &lo_idx, int &hi_idx);
+    unsigned int checkMask(uint strip, int &lo_idx, int &hi_idx);
     bool newCluster(nmx::data_point &point);
     bool insertInCluster(nmx::data_point &point);
     bool mergeAndInsert(uint32_t lo_idx, uint32_t hi_idx, nmx::data_point &point);

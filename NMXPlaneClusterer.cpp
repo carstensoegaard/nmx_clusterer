@@ -8,14 +8,14 @@
 
 #include "NMXPlaneClusterer.h"
 
-NMXPlaneClusterer::NMXPlaneClusterer(NMXClusterManager &clusterManager, NMXClusterPairing &clusterPairing,
+NMXPlaneClusterer::NMXPlaneClusterer(int plane, NMXClusterManager &clusterManager, NMXClusterPairing &clusterPairing,
                                      std::mutex &mutex)
     : m_verbose_level(0),
       m_i1(nmx::DATA_MINOR_BITMASK),
       m_nB(0),
       m_nC(0),
       m_nD(0),
-      m_plane(-1),
+      m_plane(plane),
       m_new_point(false),
       m_clusterManager(clusterManager),
       m_clusterParing(clusterPairing),
@@ -62,13 +62,13 @@ bool NMXPlaneClusterer::addDataPoint(const nmx::data_point &point) {
 
 void NMXPlaneClusterer::producer() {
 
-    std::cout << "Started sorting thread!\n";
+    std::cout << "<THREAD> Started sorting thread for plane " << (m_plane ? "Y" : "X") << std::endl;
 
     while(1) {
 
         while (!m_new_point) {
             if (m_terminate) {
-                std::cout << "Stopped sorting thread!\n";
+                std::cout << "<THREAD> Stopped sorting thread for plane " << (m_plane ? "Y" : "X") << std::endl;
                 return;
             }
             std::this_thread::yield();
@@ -164,7 +164,7 @@ void NMXPlaneClusterer::producer() {
 
 void NMXPlaneClusterer::consumer() {
 
-    std::cout << "Started clustering thread!\n";
+    std::cout << "<THREAD> Started clustering thread for plane " << (m_plane ? "Y" : "X") << std::endl;
 
     uint32_t lastFlush = 0;
 
@@ -173,7 +173,7 @@ void NMXPlaneClusterer::consumer() {
         // May be replaced by guardC()
         while ((m_nB == m_nC) || m_nD) {
             if (m_terminate && (m_nC == m_nB)) {
-                std::cout << "Stopped clustering thread!\n";
+                std::cout << "<THREAD> Stopped clustering thread for plane " << (m_plane ? "Y" : "X") << std::endl;
                 return;
             }
             std::this_thread::yield();
@@ -654,6 +654,7 @@ bool NMXPlaneClusterer::flushCluster(const int boxid) {
         int cluster_idx = m_clusterManager.getClusterFromStack(m_plane);
         m_clusterManager.getCluster(m_plane, cluster_idx) = produced_cluster;
         m_clusterParing.insertClusterInQueue(m_plane, cluster_idx);
+        m_nClusters++;
     }
 
     m_boxes.releaseBox(boxid);
@@ -769,6 +770,8 @@ void NMXPlaneClusterer::reset() {
 
     // Start threads again
     m_terminate = false;
+
+    m_nClusters = 0;
 }
 
 void NMXPlaneClusterer::checkBoxes(uint32_t latestTime) {

@@ -21,16 +21,10 @@ nmx_location NMXLocationFinder::find(nmx::pairBuffer &buf) {
     loc.x_strip = -1;
     loc.y_strip = -1;
 
-    std::cout << "<NMXLocationFinder::find> Recieved " << buf.npairs << " pairs." << std::endl;
-
        for (unsigned int i = 0; i < buf.npairs; i++) {
-
-           std::cout << "Pair # " << i << " : x-idx = " << buf.pairs.at(i).x_idx << ", y-idx = "
-                     << buf.pairs.at(i).y_idx << std::endl;
 
            nmx::cluster xcluster = m_clusterManager.getCluster(0, buf.pairs.at(i).x_idx);
            nmx::cluster ycluster = m_clusterManager.getCluster(1, buf.pairs.at(i).y_idx);
-
 
            nmx::fullCluster cluster;
            cluster.clusters.at(0) = xcluster;

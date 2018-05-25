@@ -25,6 +25,7 @@ public:
     void reset();
     void terminate() { m_terminate = true; }
 
+    uint64_t getNumberOfPaired() { return  m_nPairs; }
     uint64_t getNumberOfLateClusters() { return m_nLateClusters; }
 
    private:
@@ -48,6 +49,7 @@ public:
     unsigned int m_verbose_level;
     bool m_terminate;
 
+    uint64_t m_nPairs = 0;
     uint64_t m_nLateClusters = 0;
 
     NMXClusterManager &m_clusterManager;

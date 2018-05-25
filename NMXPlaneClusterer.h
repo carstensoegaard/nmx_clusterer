@@ -19,10 +19,9 @@ class NMXPlaneClusterer {
 
 public:
 
-    NMXPlaneClusterer(NMXClusterManager &clusterManager, NMXClusterPairing &clusterPairing, std::mutex &mutex);
+    NMXPlaneClusterer(int plane, NMXClusterManager &clusterManager, NMXClusterPairing &clusterPairing,
+                      std::mutex &mutex);
     ~NMXPlaneClusterer();
-    void setPlane(int plane) { m_plane = plane; }
-
 
     bool addDataPoint(const nmx::data_point &point);
     bool addDataPoint(uint32_t strip, uint32_t time, uint32_t charge);
@@ -36,6 +35,7 @@ public:
 
     void setVerboseLevel(uint level = 0) { m_verbose_level = level; }
 
+    uint64_t getNumberOfProducedClusters() { return m_nClusters; }
     uint64_t getNumberOfOldPoints() { return m_nOldPoints; }
 
     void setTrackPoint(bool set = false, uint32_t time = 0, uint32_t strip = 0, uint32_t charge = 0)
@@ -79,6 +79,8 @@ private:
     nmx::row_array m_SortQ;
     nmx::row_array m_ClusterQ;
     nmx::time_ordered_buffer m_time_ordered_buffer;
+
+    uint64_t m_nClusters = 0;
 
     uint32_t getMinorTime(uint32_t time);
     uint32_t getMajorTime(uint32_t time);

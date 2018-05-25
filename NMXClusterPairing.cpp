@@ -47,18 +47,6 @@ void NMXClusterPairing::insertClusterInQueue(int plane, unsigned int cluster_idx
     while (m_nIn.at(plane) - m_nOut.at(plane) > nmx::NCLUSTERS-1)
         std::this_thread::yield();
 
-    nmx::cluster &cl = m_clusterManager.getCluster(plane, cluster_idx);
-
-    for (unsigned int i = 0; i < cl.npoints; i ++) {
-
-        nmx::data_point &point = cl.data.at(i);
-
-        if ((42336 == point.time) &&
-            (144 == point.strip) &&
-            (695 == point.charge))
-            std::cout << "Track-point is in pairing buffer." << std::endl;
-    }
-
     m_mutex.lock();
 
     if (m_verbose_level > 2) {
@@ -105,7 +93,7 @@ void NMXClusterPairing::process() {
             uint32_t minorTime = getMinorTime(time);
             uint32_t majorTime = getMajorTime(time);
 
-            if (/*m_verbose_level > */1) {
+            if (m_verbose_level > 1) {
                 std::cout << "<NMXClusterPairing::insert> Got idx " << cluster_idx << " from " << buffer_idx
                           << std::endl;
                 std::cout << "Time = " << time << ", B1 = " << minorTime << ", B2 = " << majorTime << std::endl;
@@ -117,7 +105,7 @@ void NMXClusterPairing::process() {
 
                 if (majorTime == (m_majortime_buffer.at(0) + 1)) {
 
-                    if (/*m_verbose_level >*/ 1)
+                    if (m_verbose_level > 1)
                         std::cout << "Case 1\n";
 
                     slideTimeWindow(nmx::CLUSTER_MAX_MINOR - m_i1 + std::min(m_i1, minorTime), minorTime, majorTime);
@@ -125,7 +113,7 @@ void NMXClusterPairing::process() {
 
                 } else { // majorTime > (m_majortime_buffer.at(0) + 1)
 
-                    if (/*m_verbose_level > */1)
+                    if (m_verbose_level > 1)
                         std::cout << "Case 2\n";
 
                     slideTimeWindow(nmx::CLUSTER_MAX_MINOR, minorTime, majorTime);
@@ -138,7 +126,7 @@ void NMXClusterPairing::process() {
 
                     case 1:
 
-                        if (/*m_verbose_level > */1)
+                        if (m_verbose_level > 1)
                             std::cout << "Case 3\n";
 
                         slideTimeWindow(minorTime - m_i1, minorTime, majorTime);
@@ -148,7 +136,7 @@ void NMXClusterPairing::process() {
 
                     case 0:
 
-                        if (/*m_verbose_level > */1)
+                        if (m_verbose_level > 1)
                             std::cout << "Case 4\n";
 
                         addToBuffer(plane, cluster_idx, minorTime);
@@ -240,9 +228,6 @@ void NMXClusterPairing::slideTimeWindow(uint d, uint minorTime, uint majorTime) 
         throw 1;
     }
 
-    printQueue();
-    printSortBuffer();
-
     if (m_verbose_level > 1) {
         std::string s("\nWill move ");
         s.append(std::to_string(d));
@@ -250,13 +235,15 @@ void NMXClusterPairing::slideTimeWindow(uint d, uint minorTime, uint majorTime) 
         std::cout << s;
     }
 
-    std::cout << "Moving from idx " << (m_i1+1)%nmx::CLUSTER_MAX_MINOR << " to " << (d+m_i1+1)%nmx::CLUSTER_MAX_MINOR
-              << std::endl;
+    if (m_verbose_level > 2)
+        std::cout << "Moving from idx " << (m_i1 + 1) % nmx::CLUSTER_MAX_MINOR << " to "
+                  << (d + m_i1 + 1) % nmx::CLUSTER_MAX_MINOR
+                  << std::endl;
 
     for (uint64_t i = 0; i < d; ++i) {
 
-        uint64_t this_idx = (i+m_i1+1)%nmx::CLUSTER_MAX_MINOR;
-        uint64_t next_idx = (this_idx+1)%nmx::CLUSTER_MAX_MINOR;
+        uint64_t this_idx = (i + m_i1 + 1) % nmx::CLUSTER_MAX_MINOR;
+        uint64_t next_idx = (this_idx + 1) % nmx::CLUSTER_MAX_MINOR;
 
         nmx::clusterParingEntry &this_queue = m_time_ordered_buffer.at(this_idx);
         nmx::clusterParingEntry &next_queue = m_time_ordered_buffer.at(next_idx);
@@ -284,7 +271,7 @@ void NMXClusterPairing::slideTimeWindow(uint d, uint minorTime, uint majorTime) 
             std::cout << "thisCase = " << thisCase << ", nextCase = " << nextCase << std::endl;
         }
 
-        if (m_nXthis+m_nXnext == 0 || m_nYthis+m_nYnext == 0) {
+        if (m_nXthis + m_nXnext == 0 || m_nYthis + m_nYnext == 0) {
 
             returnQueueToStack(0, this_queue.queue.at(0));
             returnQueueToStack(1, this_queue.queue.at(1));
@@ -337,8 +324,7 @@ void NMXClusterPairing::slideTimeWindow(uint d, uint minorTime, uint majorTime) 
                 case 15:
                     pairQueues(this_queue, next_queue);
                     break;
-                default:
-                    ;
+                default:;
             }
 
         } else
@@ -352,7 +338,7 @@ void NMXClusterPairing::slideTimeWindow(uint d, uint minorTime, uint majorTime) 
         if (this_idx <= minorTime)
             m_majortime_buffer.at(this_idx) = majorTime;
         else
-            m_majortime_buffer.at(this_idx) = majorTime -1;
+            m_majortime_buffer.at(this_idx) = majorTime - 1;
     }
 
     if (m_verbose_level > 2) {
@@ -362,16 +348,14 @@ void NMXClusterPairing::slideTimeWindow(uint d, uint minorTime, uint majorTime) 
 
     m_i1 = minorTime;
 
-    //nmx::printMajorTimeBuffer(m_majortime_buffer);
-
-    m_mutex.lock();
-    if (/*m_verbose_level > */2) {
+    if (m_verbose_level > 2) {
+        m_mutex.lock();
         m_clusterManager.printStack(0);
         m_clusterManager.printStack(1);
         printSortBuffer();
         printQueue();
+        m_mutex.unlock();
     }
-    m_mutex.unlock();
 }
 
 void NMXClusterPairing::pairQueues(nmx::clusterParingEntry &this_queue, nmx::clusterParingEntry &next_queue) {
@@ -382,8 +366,6 @@ void NMXClusterPairing::pairQueues(nmx::clusterParingEntry &this_queue, nmx::clu
     m_Qmatrix.reset();
     calculateQmatrix(this_queue, next_queue);
 
-    printQmatrix();
-
     this_queue.queue.at(0) = -1;
     this_queue.queueLength.at(0) = 0;
     this_queue.queue.at(1) = -1;
@@ -393,12 +375,7 @@ void NMXClusterPairing::pairQueues(nmx::clusterParingEntry &this_queue, nmx::clu
     next_queue.queue.at(1) = -1;
     next_queue.queueLength.at(1) = 0;
 
-
-    std::cout << "Queues after restting ... " << std::endl;
-    nmx::printQueue(0, next_queue.queue.at(0), m_clusterManager);
-    nmx::printQueue(1, next_queue.queue.at(1), m_clusterManager);
-
-    if (/*m_verbose_level > */2)
+    if (m_verbose_level > 2)
         std::cout << "<NMXClusterPairing::pairQueues> Processing Qmatrix dim[" << m_nXthis + m_nXnext << ", "
                   << m_nYthis + m_nYnext << "]\n";
 
@@ -406,19 +383,19 @@ void NMXClusterPairing::pairQueues(nmx::clusterParingEntry &this_queue, nmx::clu
 
         nmx::clusterPair entry = findMinQ(m_Qmatrix);
 
-        std::cout << "Entry with min-Q is (" << entry.x_idx << ", " << entry.y_idx << ")" << std::endl;
+        if (m_verbose_level > 2)
+            std::cout << "Entry with min-Q is (" << entry.x_idx << ", " << entry.y_idx << ")" << std::endl;
 
         if (entry.x_idx < 0 || entry.y_idx < 0)
             break;
 
-        if (/*m_verbose_level > */2)
+        if (m_verbose_level > 2) {
             std::cout << "Min_Q located at (" << entry.x_idx << ", " << entry.y_idx << ")\n";
-
-        if (m_Qmatrix.at(entry.x_idx, entry.y_idx) > nmx::DELTA_Q) {
-            if (/*m_verbose_level > */2)
-                std::cout << "Qmatrix[" << entry.x_idx << ", " << entry.y_idx << "] > " << nmx::DELTA_Q << std::endl;
-            break;
+            std::cout << "Qmatrix[" << entry.x_idx << ", " << entry.y_idx << "] > " << nmx::DELTA_Q << std::endl;
         }
+
+        if (m_Qmatrix.at(entry.x_idx, entry.y_idx) > nmx::DELTA_Q)
+            break;
 
         if ((static_cast<unsigned int>(entry.x_idx) >= m_nXthis) &&
             (static_cast<unsigned int>(entry.y_idx) >= m_nYthis)) {
@@ -446,24 +423,22 @@ void NMXClusterPairing::pairQueues(nmx::clusterParingEntry &this_queue, nmx::clu
 
     // Empty links from matrix
 
-    printQmatrix();
-
     // First clear 'this-queue' entries
-    if (/*m_verbose_level > */2)
+    if (m_verbose_level > 2)
         std::cout << "Clearing 'this-queue' X ..." << std::endl;
     for (unsigned int i = 0; i < m_nXthis; i++) {
         int idx = m_Qmatrix.getLink(i, 0);
-        if (/*m_verbose_level > */2)
+        if (m_verbose_level > 2)
             std::cout << "Index of item " << i << " is " << idx << std::endl;
         if (idx >= 0)
             m_clusterManager.returnClusterToStack(0, idx);
     }
 
-    if (/*m_verbose_level > */2)
+    if (m_verbose_level > 2)
         std::cout << "Clearing 'this-queue' Y ..." << std::endl;
     for (unsigned int i = 0; i < m_nYthis; i++) {
         int idx = m_Qmatrix.getLink(i, 1);
-        if (/*m_verbose_level > */2)
+        if (m_verbose_level > 2)
             std::cout << "Index of item " << i << " is " << idx << std::endl;
         if (idx >= 0)
             m_clusterManager.returnClusterToStack(1, idx);
@@ -481,6 +456,7 @@ void NMXClusterPairing::pairQueues(nmx::clusterParingEntry &this_queue, nmx::clu
             appendIndexToQueue(1, next_queue, idx);
     }
 
+    m_nPairs += pairBuffer.npairs;
     m_locationFinder.find(pairBuffer);
 }
 
@@ -555,10 +531,10 @@ void NMXClusterPairing::appendIndexToQueue(unsigned int plane, nmx::clusterParin
     if (clusterIdx < 0)
         return;
 
-    if (/*m_verbose_level >*/ 1)
+    if (m_verbose_level > 1)
         std::cout << "<NMXClusterPairing::appendIndexToQueue> Appending idx " << clusterIdx << " to "
                   << (plane ? "Y" : "X") << " queue." << std::endl;
-    if (/*m_verbose_level >*/ 2) {
+    if (m_verbose_level > 2) {
         std::cout << "Queue before:\n";
         nmx::printQueue(plane, queue.queue.at(plane), m_clusterManager);
     }
@@ -571,7 +547,7 @@ void NMXClusterPairing::appendIndexToQueue(unsigned int plane, nmx::clusterParin
         queue.queueLength.at(plane) = 1;
     } else {
 
-        if (/*m_verbose_level >*/ 2)
+        if (m_verbose_level > 2)
             std::cout << "Propagating queue : " << currentIdx;
 
         while (true) {
@@ -580,7 +556,7 @@ void NMXClusterPairing::appendIndexToQueue(unsigned int plane, nmx::clusterParin
 
             currentIdx = currentCluster.box.link1;
 
-            if (/*m_verbose_level >*/ 2)
+            if (m_verbose_level > 2)
                 std::cout << " -> " << currentIdx;
 
             if (currentIdx == -1) {
@@ -592,7 +568,7 @@ void NMXClusterPairing::appendIndexToQueue(unsigned int plane, nmx::clusterParin
         }
     }
 
-    if (/*m_verbose_level >*/ 2) {
+    if (m_verbose_level > 2) {
         std::cout << std::endl;
         std::cout << "Queue after:" << std::endl;
         nmx::printQueue(plane, queue.queue.at(plane), m_clusterManager);
@@ -635,6 +611,8 @@ void NMXClusterPairing::reset() {
     m_i1 = nmx::CLUSTER_MINOR_BITMASK;
 
     m_terminate = false;
+
+    m_nPairs = 0;
 }
 
 void NMXClusterPairing::returnQueueToStack(int plane, int idx) {

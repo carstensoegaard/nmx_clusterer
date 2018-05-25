@@ -64,6 +64,8 @@ int main() {
     bool cont = true;
     unsigned int repeat = 0;
 
+    uint64_t nEvents = 0;
+
     while (cont) {
 
         nmx::fullCluster ievent = reader.ReadNextEvent();
@@ -82,7 +84,7 @@ int main() {
 
     while (repeat < nrepeats) {
 
-        std::cout << "*** Repeat # " << repeat << " ***\n";
+        //std::cout << "*** Repeat # " << repeat << " ***\n";
 
         for (unsigned int ievent = 0; ievent < events.size(); ievent++) {
 
@@ -121,6 +123,7 @@ int main() {
             writeEventToFile(file, ev);
 
             multiplier++;
+            nEvents++;
         }
 
         repeat++;
@@ -130,19 +133,56 @@ int main() {
 
     auto t2 = Clock::now();
 
-    std::cout << "Number of inserted data-points                  : " << std::setw(10) << npoints << std::endl;
+    long time = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
 
-    auto time = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+    unsigned int w1 = 40;
+    unsigned int w2 = 10;
 
-    std::cout << "Performed in " << time << " micro-seconds\n";
-    std::cout << "Time per data point is : " << 1.*time/npoints << " microseconds\n";
-    std::cout << "Which is a rate of " << 1./(time/npoints/1000000.) << " Hz\n";
-    std::cout << "\nNumber of old points (X,Y) : ( " << c.getNumberOfOldPointsX() << " , " << c.getNumberOfOldPointsY()
-              << " )" << std::endl;
-    std::cout << "Number of failed cluster-requests : " << c.getFailedClusterRequests() << std::endl;
-    std::cout << "Number of late clusters : " << c.getNumberOfLateClusters() << std::endl;
+    std::cout << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Processing time :" << std::right
+                                   << std::setw(w2) << time << " ms" << std::endl;
+    std::cout << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Number of inserted data-points :" << std::right
+                                   << std::setw(w2) << npoints << " points" << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Data-point processing time :" << std::right
+                                   << std::setw(w2) << 1.*time/npoints << " ms" << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Data-point processing rate :"  << std::right
+                                   << std::setw(w2) << 1./(time/npoints/1000.) << " kHz" << std::endl;
+    std::cout << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Number of inserted events :" << std::right
+                                   << std::setw(w2) << nEvents << " events" << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Event processing time :" << std::right
+                                   << std::setw(w2) << 1.*time/nEvents << " ms" << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Event processing rate :"  << std::right
+                                   << std::setw(w2) << 1./(time/nEvents/1000.) << " kHz" << std::endl;
+    std::cout << std::endl;
+    uint64_t nClustersX = c.getNumberOfProducedClustersX();
+    uint64_t nClustersY = c.getNumberOfProducedClustersY();
+    uint64_t nPaired    = c.getNumberOfPaired();
+    std::cout.width(w1); std::cout << std::left << "Number of produced clusters X :" << std::right
+                                   << std::setw(w2) << nClustersX << " clusters" << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Number of produced clusters Y :" << std::right
+                                   << std::setw(w2) << nClustersY << " clusters" << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Number of paired :" << std::right
+                                   << std::setw(w2) << nPaired << " clusters" << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Ratio - produced clusters X/paired:" << std::right
+                                   << std::setw(w2) << static_cast<double>(nClustersX)/static_cast<double>(nPaired)
+                                   << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Ratio - produced clusters Y/paired:" << std::right
+                                   << std::setw(w2) << static_cast<double>(nClustersY)/static_cast<double>(nPaired)
+                                   << std::endl;
+    std::cout << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Number of old points X :" << std::right
+                                   << std::setw(w2) << c.getNumberOfOldPointsX() << " points" << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Number of old points Y :" << std::right
+                                   << std::setw(w2) << c.getNumberOfOldPointsY() << " points" << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Number of failed cluster-requests : " << std::right
+                                   << std::setw(w2) << c.getFailedClusterRequests() << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Number of late clusters : " << std::right
+                                   << std::setw(w2) << c.getNumberOfLateClusters() << std::endl;
 
     c.terminate();
+    c.reset();
 
     file.close();
 

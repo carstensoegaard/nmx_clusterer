@@ -23,11 +23,14 @@ public:
     void reset();
     void terminate();
 
-    uint64_t getNumberOfOldPointsX() { return m_XplaneClusterer.getNumberOfOldPoints(); }
-    uint64_t getNumberOfOldPointsY() { return m_YplaneClusterer.getNumberOfOldPoints(); }
-    uint64_t getFailedClusterRequests() { return m_clusterManager.getFailedClusterRequests(); }
-    uint64_t getNumberOfLateClusters() { return m_clusterPairing.getNumberOfLateClusters(); }
+    uint64_t getNumberOfProducedClustersX() { return m_XplaneClusterer.getNumberOfProducedClusters(); }
+    uint64_t getNumberOfProducedClustersY() { return m_YplaneClusterer.getNumberOfProducedClusters(); }
+    uint64_t getNumberOfPaired()            { return m_clusterPairing.getNumberOfPaired(); }
 
+    uint64_t getNumberOfOldPointsX()    { return m_XplaneClusterer.getNumberOfOldPoints(); }
+    uint64_t getNumberOfOldPointsY()    { return m_YplaneClusterer.getNumberOfOldPoints(); }
+    uint64_t getFailedClusterRequests() { return m_clusterManager.getFailedClusterRequests(); }
+    uint64_t getNumberOfLateClusters()  { return m_clusterPairing.getNumberOfLateClusters(); }
 
 private:
 

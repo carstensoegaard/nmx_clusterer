@@ -9,7 +9,7 @@
 #include <thread>
 #include <mutex>
 
-#include "NMXClustererDefinitions.h"
+#include "clusterer/include/NMXClustererDefinitions.h"
 #include "NMXClustererHelper.h"
 #include "NMXClusterManager.h"
 #include "NMXClusterPairing.h"

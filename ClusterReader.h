@@ -8,7 +8,7 @@
 #include <fstream>
 #include <vector>
 
-#include "NMXClustererDefinitions.h"
+#include "clusterer/include/NMXClustererDefinitions.h"
 
 class ClusterReader {
 

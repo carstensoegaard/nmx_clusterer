@@ -10,7 +10,7 @@
 #include <vector>
 #include <array>
 
-#include "NMXClustererDefinitions.h"
+#include "clusterer/include/NMXClustererDefinitions.h"
 
 
 typedef std::array<uint32_t, 4> line_data;

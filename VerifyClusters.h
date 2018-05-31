@@ -7,7 +7,7 @@
 
 
 #include <vector>
-#include "NMXClustererDefinitions.h"
+#include "clusterer/include/NMXClustererDefinitions.h"
 
 class VerifyClusters {
 

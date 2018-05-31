@@ -7,7 +7,7 @@
 
 #include <array>
 
-#include "NMXClustererDefinitions.h"
+#include "clusterer/include/NMXClustererDefinitions.h"
 
 class BoxAdministration {
 

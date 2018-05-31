@@ -9,7 +9,7 @@
 #include <thread>
 #include <mutex>
 
-#include "NMXClustererDefinitions.h"
+#include "clusterer/include/NMXClustererDefinitions.h"
 #include "BoxAdministration.h"
 #include "NMXClusterManager.h"
 #include "NMXClusterPairing.h"
@@ -69,15 +69,15 @@ private:
 
     nmx::data_point m_point_buffer;
 
-    nmx::buffer_data m_cluster;
+    nmx::dataBuffer_t m_cluster;
 
     BoxAdministration m_boxes;
 
     nmx::col_array m_mask;
 
-    nmx::row_array m_majortime_buffer;
-    nmx::row_array m_SortQ;
-    nmx::row_array m_ClusterQ;
+    nmx::dataColumn_t m_majortime_buffer;
+    nmx::dataColumn_t m_SortQ;
+    nmx::dataColumn_t m_ClusterQ;
     nmx::time_ordered_buffer m_time_ordered_buffer;
 
     uint64_t m_nClusters = 0;

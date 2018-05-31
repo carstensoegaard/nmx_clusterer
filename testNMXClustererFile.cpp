@@ -10,11 +10,11 @@
 #include <vector>
 #include <algorithm>
 
-#include "NMXClustererDefinitions.h"
+#include "clusterer/include/NMXClustererDefinitions.h"
 #include "NMXPlaneClusterer.h"
 #include "SpecialDataReader.h"
 #include "NMXClustererVerification.h"
-#include "NMXClusterer.h"
+#include "clusterer/include/NMXClusterer.h"
 
 typedef std::chrono::high_resolution_clock Clock;
 
@@ -58,7 +58,7 @@ int main() {
     std::ofstream file;
     file.open("NMX_input_events.txt");
 
-    unsigned int nrepeats = 100;
+    unsigned int nrepeats = 1;
     unsigned int multiplier = 5;
 
     bool cont = true;
@@ -145,16 +145,18 @@ int main() {
     std::cout.width(w1); std::cout << std::left << "Number of inserted data-points :" << std::right
                                    << std::setw(w2) << npoints << " points" << std::endl;
     std::cout.width(w1); std::cout << std::left << "Data-point processing time :" << std::right
-                                   << std::setw(w2) << 1.*time/npoints << " ms" << std::endl;
+                                   << std::setw(w2) << 1.* static_cast<double>(time)/
+                                                           static_cast<double>(npoints) << " us" << std::endl;
     std::cout.width(w1); std::cout << std::left << "Data-point processing rate :"  << std::right
-                                   << std::setw(w2) << 1./(time/npoints/1000.) << " kHz" << std::endl;
+                                   << std::setw(w2) << 1./(static_cast<double>(time)/ static_cast<double>(npoints)/1000000.) << " Hz" << std::endl;
     std::cout << std::endl;
     std::cout.width(w1); std::cout << std::left << "Number of inserted events :" << std::right
                                    << std::setw(w2) << nEvents << " events" << std::endl;
     std::cout.width(w1); std::cout << std::left << "Event processing time :" << std::right
-                                   << std::setw(w2) << 1.*time/nEvents << " ms" << std::endl;
+                                   << std::setw(w2) << 1.* static_cast<double>(time)/
+                                                           static_cast<double>(nEvents) << " us" << std::endl;
     std::cout.width(w1); std::cout << std::left << "Event processing rate :"  << std::right
-                                   << std::setw(w2) << 1./(time/nEvents/1000.) << " kHz" << std::endl;
+                                   << std::setw(w2) << 1./(static_cast<double>(time)/ static_cast<double>(nEvents)/1000000.) << " Hz" << std::endl;
     std::cout << std::endl;
     uint64_t nClustersX = c.getNumberOfProducedClustersX();
     uint64_t nClustersY = c.getNumberOfProducedClustersY();

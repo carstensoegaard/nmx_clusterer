@@ -10,7 +10,7 @@
 #include <thread>
 #include <mutex>
 
-#include "NMXClustererDefinitions.h"
+#include "clusterer/include/NMXClustererDefinitions.h"
 
 class NMXClustererVerification {
 

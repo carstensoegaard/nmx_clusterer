@@ -8,7 +8,7 @@
 #include <thread>
 #include <mutex>
 
-#include "NMXClustererDefinitions.h"
+#include "clusterer/include/NMXClustererDefinitions.h"
 #include "NMXClusterManager.h"
 #include "NMXLocationFinder.h"
 
@@ -36,7 +36,7 @@ public:
     std::array<unsigned int, 2> m_nOut;
 
     std::array<nmx::clusterParingEntry, nmx::CLUSTER_MAX_MINOR> m_time_ordered_buffer;
-    nmx::row_array m_majortime_buffer;
+    nmx::dataColumn_t m_majortime_buffer;
     uint32_t m_i1;
 
     unsigned int m_nXthis;

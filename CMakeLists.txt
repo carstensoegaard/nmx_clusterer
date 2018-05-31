@@ -7,11 +7,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-error=unused-function
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-set(NMX_CLUSTERER_SOURCES BoxAdministration.cpp NMXClusterManager.cpp NMXClusterer.cpp
+set(NMX_CLUSTERER_SOURCES BoxAdministration.cpp NMXClusterManager.cpp clusterer/src/NMXClusterer.cpp
         NMXClusterPairing.cpp NMXPlaneClusterer.cpp NMXLocationFinder.cpp)
-set(NMX_CLUSTERER_HEADERS NMXClustererSettings.h NMXClustererDefinitions.h BoxAdministration.h NMXClusterManager.h
+set(NMX_CLUSTERER_HEADERS clusterer/include/NMXClustererSettings.h clusterer/include/NMXClustererDefinitions.h BoxAdministration.h NMXClusterManager.h
         NMXPlaneClusterer.h NMXClusterPairing.h NMXLocationFinder.h NMXQmatrix.h )
-add_library(nmx ${NMX_CLUSTERER_SOURCES} ${NMX_CLUSTERER_HEADERS} NMXClusterer.cpp NMXClusterer.h)
+add_library(nmx ${NMX_CLUSTERER_SOURCES} ${NMX_CLUSTERER_HEADERS} clusterer/src/NMXClusterer.cpp clusterer/include/NMXClusterer.h)
 
 set(NMX_HELPER_SOURCES SpecialDataReader.cpp ClusterReader.cpp WriteVerificationToDisk.cpp VerifyClusters.cpp)
 set(NMX_HELPER_HEADERS NMXClustererHelper.h SpecialDataReader.h ClusterReader.h WriteVerificationToDisk.h VerifyClusters.h)

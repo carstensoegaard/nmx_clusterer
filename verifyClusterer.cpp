@@ -2,6 +2,7 @@
 // Created by soegaard on 4/26/18.
 //
 
+#include <iomanip>
 #include "ClusterReader.h"
 #include "SpecialDataReader.h"
 #include "VerifyClusters.h"
@@ -18,6 +19,8 @@ int main() {
     std::cout << "Reading clusters ... " << std::endl;
     std::vector<nmx::fullCluster> clusters = clusterReader.getAllClusters();
     std::cout << "Recieved " << clusters.size() << " clusters." << std::endl;
+
+    int nclusters = clusters.size();
 
     VerifyClusters verifier;
 
@@ -38,7 +41,10 @@ int main() {
 
     auto eventIter = events.begin();
     int matched = 0;
+    int matching[7] = {0, 0, 0, 0, 0, 0, 0};
     old = -1;
+
+    int cs = 0;
 
     std::cout << "Matching " << events.size() << " events with " << clusters.size() << " clusters ..." << std::endl;
     while (eventIter != events.end()) {
@@ -49,14 +55,53 @@ int main() {
             old = percent;
         }
 
-        std::vector<nmx::fullCluster> matching = verifier.findMatchingClusters(*eventIter, clusters);
+        std::vector<nmx::fullCluster> matchingClusters = verifier.findMatchingClusters(*eventIter, clusters);
 
-        writer.write(*eventIter, matching);
+        unsigned int m = matchingClusters.size();
+
+        cs += m;
+
+        if (m < 6)
+            matching[m]++;
+        else
+            matching[6]++;
+
+        std::cout << m << " clusters matched!" << std::endl;
+        for (unsigned int i = 0; i < 7; i++)
+            std::cout << matching[i] << " ";
+        std::cout << std::endl;
+
+        writer.write(*eventIter, matchingClusters);
 
         eventIter++;
         matched++;
     }
-    std::cout << "completed!" << std::endl;
+    std::cout << "completed " << matched << " events and " << cs << " clusters!" << std::endl;
+
+    unsigned int w1 = 45;
+    unsigned int w2 = 5;
+
+    std::cout << std::endl;
+
+    std::cout.width(w1); std::cout << std::left << "Results of matching :" << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Number of events :" << std::right
+                                   << std::setw(w2) << events.size() << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Number of clusters :" << std::right
+                                   << std::setw(w2) << nclusters << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Events matched with 0 clusters :" << std::right
+                                   << std::setw(w2) <<  matching[0] << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Events matched with 1 clusters :" << std::right
+                                   << std::setw(w2) <<  matching[1] << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Events matched with 2 clusters :" << std::right
+                                   << std::setw(w2) <<  matching[2] << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Events matched with 3 clusters :" << std::right
+                                   << std::setw(w2) <<  matching[3] << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Events matched with 4 clusters :" << std::right
+                                   << std::setw(w2) <<  matching[4] << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Events matched with 5 clusters :" << std::right
+                                   << std::setw(w2) <<  matching[5] << std::endl;
+    std::cout.width(w1); std::cout << std::left << "Events matched with more than 5 clusters :" << std::right
+                                   << std::setw(w2) <<  matching[6] << std::endl;
 
     return 1;
 }

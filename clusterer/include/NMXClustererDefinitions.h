@@ -1,14 +1,33 @@
 //
 // Created by soegaard on 10/24/17.
 //
-#ifndef NMX_CLUSTER_DEFINITIONS_H
-#define NMX_CLUSTER_DEFINITIONS_H
+#ifndef NMX_CLUSTERER_DEFINITIONS_H
+#define NMX_CLUSTERER_DEFINITIONS_H
 
 #include <iostream>
 #include <array>
 
 #include "NMXClustererSettings.h"
-#include "NMXQmatrix.h"
+#include "../../NMXQmatrix.h"
+
+namespace nmx {
+
+    /*! @name Various types used in the code
+     *
+     * Types which are used in multiple classes are defined here.
+     */
+    ///@{
+    /*! Array of length nmx::DATA_MAX_MINOR
+     *
+     * The columns length used in forming the matrix which contains the sorting buffer. The array has a length og
+     * nmx::DATA_MAX_MINOR
+     */
+    typedef std::array<uint32_t, DATA_MAX_MINOR> dataColumn_t;
+
+    ///@}
+
+}
+
 
 namespace nmx {
 
@@ -19,16 +38,14 @@ namespace nmx {
         uint32_t time;
     };
 
-    // Define an array of length NROWS
-    typedef std::array<uint32_t, DATA_MAX_MINOR> row_array;
     // Define an array of length CHANNELS_PER_PLANE
     typedef std::array<int32_t, STRIPS_PER_PLANE> col_array;
 
-    typedef std::array<data_point, STRIPS_PER_PLANE> buffer_data;
+    typedef std::array<data_point, STRIPS_PER_PLANE> dataBuffer_t;
 
     struct buffer {
         unsigned int npoints;
-        buffer_data data;
+        dataBuffer_t data;
     };
 
     /*struct idx_buffer {
@@ -86,4 +103,4 @@ namespace nmx {
     };
 }
 
-#endif //NMX_CLUSTER_DEFINITIONS_H
+#endif //NMX_CLUSTERER_DEFINITIONS_H

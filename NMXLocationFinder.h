@@ -22,6 +22,7 @@ class NMXLocationFinder {
 public:
 
     NMXLocationFinder(NMXClusterManager &clustermanager);
+    ~NMXLocationFinder();
 
     nmx_location find(nmx::pairBuffer &buf);
 
@@ -30,6 +31,9 @@ private:
     NMXClusterManager &m_clusterManager;
 
     std::ofstream m_file;
+
+    //uint64_t totalxPoints = 0;
+    //uint64_t totalyPoints = 0;
 };
 
 

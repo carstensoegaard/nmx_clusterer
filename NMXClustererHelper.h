@@ -9,7 +9,7 @@
 #include <iostream>
 #include <iomanip>
 
-#include "NMXClustererDefinitions.h"
+#include "clusterer/include/NMXClustererDefinitions.h"
 #include "BoxAdministration.h"
 #include "NMXClusterManager.h"
 
@@ -72,7 +72,7 @@ namespace nmx {
     //*****************************************************************************************************************
 
     static void printTimeOrderedBuffer(const nmx::time_ordered_buffer& time_ordered_buffer,
-                                       const nmx::row_array& SortQ) {
+                                       const nmx::dataColumn_t& SortQ) {
 
         std::cout << "Time ordered buffer :\n";
 
@@ -132,7 +132,7 @@ namespace nmx {
 
     //*****************************************************************************************************************
 
-    static void printMajorTimeBuffer(const nmx::row_array& majortime_buffer) {
+    static void printMajorTimeBuffer(const nmx::dataColumn_t& majortime_buffer) {
 
         std::cout <<"\nMajorTimeBuffer:\n";
 
@@ -151,7 +151,7 @@ namespace nmx {
 
     //*****************************************************************************************************************
 
-    static void checkI1(const nmx::row_array& majortime_buffer, const uint i1) {
+    static void checkI1(const nmx::dataColumn_t& majortime_buffer, const uint i1) {
 
         bool ok = true;
 

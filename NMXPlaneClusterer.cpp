@@ -823,11 +823,11 @@ void NMXPlaneClusterer::guardB() {
 
 void NMXPlaneClusterer::checkBitSum() {
 
-    if (nmx::DATA_IGNORE_BITS + nmx::DATA_MINOR_BITS + nmx::DATA_MAJOR_BITS != 32) {
+    if (nmx::DATA_IGNORE_BITS + nmx::DATA_MINOR_BITS > 31) {
         std::cout << std::setfill('*') << std::setw(40) << "*" << std::endl;
         std::cout << std::setfill('*') << std::setw(40) << "*" << std::endl;
         std::cout << "*" << std::setfill(' ') << std::setw(38) << " " << "*\n";
-        std::cout << "*" << std::setw(4) << " " << "Sum of NBITSx does not equal 32" << std::setw(3) << " " << "*\n";
+        std::cout << "*" << std::setw(4) << " " << "Sum of NBITSx exceeds 31" << std::setw(3) << " " << "*\n";
         std::cout << "*" << std::setw(2) << " " << "Cluster can not run - must be fixed" << std::setw(1) << " " << "*\n";
         std::cout << "*" << std::setfill(' ') << std::setw(38) << " " << "*\n";
         std::cout << std::setfill('*') << std::setw(40) << "*" << std::endl;
@@ -843,7 +843,6 @@ void NMXPlaneClusterer::printInitialization() {
     std::cout << "Number of strips :         " << std::setw(10) << nmx::STRIPS_PER_PLANE << std::endl;
     std::cout << "Bits to ignore :           " << std::setw(10) << nmx::DATA_IGNORE_BITS << std::endl;
     std::cout << "Minor bits :               " << std::setw(10) << nmx::DATA_MINOR_BITS << std::endl;
-    std::cout << "Major bits :               " << std::setw(10) << nmx::DATA_MAJOR_BITS << std::endl;
     std::cout << "Neighbours to include :    " << std::setw(10) << nmx::INCLUDE_N_NEIGHBOURS << std::endl;
     std::cout << "Maximum time for cluster : " << std::setw(10) << nmx::MAX_CLUSTER_TIME << std::endl;
     std::cout << "Number of boxes :          " << std::setw(10) << nmx::NBOXES << std::endl;

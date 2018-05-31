@@ -7,7 +7,7 @@
 
 #include <iostream>
 
-#include "NMXClustererSettings.h"
+#include "clusterer/include/NMXClustererSettings.h"
 
 namespace nmx {
 

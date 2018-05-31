@@ -184,7 +184,7 @@ namespace nmx {
 
     //*****************************************************************************************************************
 
-    static void printMask(nmx::col_array mask) {
+    static void printMask(nmx::dataRow_t mask) {
 
         std::cout <<"\nMask:\n";
 

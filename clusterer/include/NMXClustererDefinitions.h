@@ -12,6 +12,8 @@
 
 namespace nmx {
 
+    struct data_point;
+
     /*! @name Various types used in the code
      *
      * Types which are used in multiple classes are defined here.
@@ -24,6 +26,18 @@ namespace nmx {
      */
     typedef std::array<uint32_t, DATA_MAX_MINOR> dataColumn_t;
 
+    /*! Array of length nmx::STRIPS_PER_PLANE
+     *
+     * The row length used in forming the matrix which contains the sorting buffer. The array has a length og
+     * nmx::STRIPS_PER_PLANE
+     */
+    typedef std::array<int32_t, STRIPS_PER_PLANE> dataRow_t;
+
+    /*! A buffer for data-points
+     *
+     * A buffer for data-points of length nmx::STRIPS_PER_PLANE.
+     */
+    typedef std::array<data_point, STRIPS_PER_PLANE> dataBuffer_t;
     ///@}
 
 }
@@ -38,20 +52,10 @@ namespace nmx {
         uint32_t time;
     };
 
-    // Define an array of length CHANNELS_PER_PLANE
-    typedef std::array<int32_t, STRIPS_PER_PLANE> col_array;
-
-    typedef std::array<data_point, STRIPS_PER_PLANE> dataBuffer_t;
-
     struct buffer {
         unsigned int npoints;
         dataBuffer_t data;
     };
-
-    /*struct idx_buffer {
-        int nidx;
-        std::array<int, 100> data;
-    };*/
 
     struct clusterParingEntry {
 

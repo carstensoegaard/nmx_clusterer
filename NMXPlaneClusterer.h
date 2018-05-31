@@ -73,7 +73,7 @@ private:
 
     BoxAdministration m_boxes;
 
-    nmx::col_array m_mask;
+    nmx::dataRow_t m_mask;
 
     nmx::dataColumn_t m_majortime_buffer;
     nmx::dataColumn_t m_SortQ;

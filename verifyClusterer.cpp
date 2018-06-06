@@ -3,10 +3,10 @@
 //
 
 #include <iomanip>
-#include "ClusterReader.h"
-#include "SpecialDataReader.h"
-#include "VerifyClusters.h"
-#include "WriteVerificationToDisk.h"
+#include "helper/include/ClusterReader.h"
+#include "helper/include/SpecialDataReader.h"
+#include "helper/include/VerifyClusters.h"
+#include "helper/include/WriteVerificationToDisk.h"
 
 int main() {
 
@@ -14,10 +14,10 @@ int main() {
     ClusterReader clusterReader("NMX_PairedClusters.txt");
 
     std::cout << "Reading events ... " << std::endl;
-    std::vector<nmx::fullCluster> events   = eventReader.getAllEvents();
+    std::vector<nmx::FullCluster> events   = eventReader.getAllEvents();
     std::cout << "Recieved " << events.size() << " events." << std::endl;
     std::cout << "Reading clusters ... " << std::endl;
-    std::vector<nmx::fullCluster> clusters = clusterReader.getAllClusters();
+    std::vector<nmx::FullCluster> clusters = clusterReader.getAllClusters();
     std::cout << "Recieved " << clusters.size() << " clusters." << std::endl;
 
     int nclusters = clusters.size();
@@ -55,7 +55,7 @@ int main() {
             old = percent;
         }
 
-        std::vector<nmx::fullCluster> matchingClusters = verifier.findMatchingClusters(*eventIter, clusters);
+        std::vector<nmx::FullCluster> matchingClusters = verifier.findMatchingClusters(*eventIter, clusters);
 
         unsigned int m = matchingClusters.size();
 

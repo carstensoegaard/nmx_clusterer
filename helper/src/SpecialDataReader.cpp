@@ -5,21 +5,21 @@
 #include <sstream>
 #include <iostream>
 
-#include "SpecialDataReader.h"
+#include "../include/SpecialDataReader.h"
 
 SpecialDataReader::SpecialDataReader() {
 
     m_ifile.open("NMX_events.txt");
 }
 
-nmx::fullCluster SpecialDataReader::ReadNextEvent() {
+nmx::FullCluster SpecialDataReader::ReadNextEvent() {
 
     uint ievent = -1;
 
-    nmx::fullCluster event;
+    nmx::FullCluster event;
 
     if (m_verboseLevel > 0)
-        std::cout << "nXpoints = " << event.clusters.at(0).npoints << ", nYpoints = " << event.clusters.at(1).npoints
+        std::cout << "nXpoints = " << event.clusters.at(0).nPoints << ", nYpoints = " << event.clusters.at(1).nPoints
                   << std::endl;
 
     std::string line;
@@ -68,16 +68,16 @@ nmx::fullCluster SpecialDataReader::ReadNextEvent() {
                 if (m_verboseLevel > 0)
                     std::cout << "Forming point\n";
 
-                nmx::data_point point;
+                nmx::DataPoint point;
                 point.strip  = data.at(1);
                 point.time   = data.at(2);
                 point.charge = data.at(3);
 
                 if (m_verboseLevel > 0)
-                    std::cout << "Inserting point at " << plane.npoints << "\n";
+                    std::cout << "Inserting point at " << plane.nPoints << "\n";
 
-                plane.data.at(plane.npoints) = point;
-                plane.npoints++;
+                plane.data.at(plane.nPoints) = point;
+                plane.nPoints++;
                 if (point.time > plane.box.max_time)
                     plane.box.max_time = point.time;
 

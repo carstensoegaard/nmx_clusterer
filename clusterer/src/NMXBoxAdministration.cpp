@@ -3,9 +3,9 @@
 //
 
 #include <iostream>
-#include "BoxAdministration.h"
+#include "../include/NMXBoxAdministration.h"
 
-BoxAdministration::BoxAdministration()
+NMXBoxAdministration::NMXBoxAdministration()
         : m_stackHead(nmx::NBOXES-1),
           m_queueHead(-1),
           m_queueTail(-1)
@@ -13,10 +13,10 @@ BoxAdministration::BoxAdministration()
     init();
 }
 
-int BoxAdministration::getBoxFromStack() {
+int NMXBoxAdministration::getBoxFromStack() {
 
     if (m_stackHead < 0) {
-        std::cerr << "<BoxAdministration::getBoxFromStack> Stack is empty!\n";
+        std::cerr << "<NMXBoxAdministration::getBoxFromStack> Stack is empty!\n";
         return -1;
     }
 
@@ -27,7 +27,7 @@ int BoxAdministration::getBoxFromStack() {
     return newbox;
 }
 
-void BoxAdministration::returnBoxToStack(unsigned int ibox) {
+void NMXBoxAdministration::returnBoxToStack(unsigned int ibox) {
 
     if (ibox > nmx::NBOXES-1)
         std::cerr << "<BoxAdminitration::returnBoxToStack> Box " << ibox << " is out of range [0,"
@@ -37,7 +37,7 @@ void BoxAdministration::returnBoxToStack(unsigned int ibox) {
     m_stackHead = ibox;
 }
 
-void BoxAdministration::insertBoxInQueue(unsigned int ibox) {
+void NMXBoxAdministration::insertBoxInQueue(unsigned int ibox) {
 
     if (ibox > nmx::NBOXES-1)
         std::cerr << "<BoxAdminitration::insertBoxInQueue> Box " << ibox << " is out of range [0,"
@@ -57,7 +57,7 @@ void BoxAdministration::insertBoxInQueue(unsigned int ibox) {
     }
 }
 
-void BoxAdministration::releaseBox(unsigned int ibox) {
+void NMXBoxAdministration::releaseBox(unsigned int ibox) {
 
     if (ibox > nmx::NBOXES-1)
         std::cerr << "<BoxAdminitration::releaseBox> Box " << ibox << " is out of range [0,"
@@ -80,7 +80,7 @@ void BoxAdministration::releaseBox(unsigned int ibox) {
     returnBoxToStack(ibox);
 }
 
-void BoxAdministration::releaseBoxFromMiddle(unsigned int emptyBox) {
+void NMXBoxAdministration::releaseBoxFromMiddle(unsigned int emptyBox) {
 
     int leftBox  = m_boxList.at(emptyBox).link2;
     int rightBox = m_boxList.at(emptyBox).link1;
@@ -88,7 +88,7 @@ void BoxAdministration::releaseBoxFromMiddle(unsigned int emptyBox) {
     m_boxList[rightBox].link2 = leftBox;
 }
 
-void BoxAdministration::releaseBoxFromTail() {
+void NMXBoxAdministration::releaseBoxFromTail() {
 
     int emptyBox = m_queueTail;
     m_queueTail = m_boxList[emptyBox].link2;
@@ -96,10 +96,10 @@ void BoxAdministration::releaseBoxFromTail() {
         m_boxList[m_queueTail].link1 = -1;
 }
 
-void BoxAdministration::releaseBoxFromHead() {
+void NMXBoxAdministration::releaseBoxFromHead() {
 
     // Be aware !!!
-    // empty box may be negative
+    // empty Box may be negative
 
     int emptyBox = m_queueHead;
     m_queueHead = m_boxList[emptyBox].link1;
@@ -107,7 +107,7 @@ void BoxAdministration::releaseBoxFromHead() {
         m_boxList[m_queueHead].link2 =- 1;
 }
 
-void BoxAdministration::updateBox(unsigned int boxid, const nmx::data_point &point) {
+void NMXBoxAdministration::updateBox(unsigned int boxid, const nmx::DataPoint &point) {
 
     if (boxid > nmx::NBOXES-1)
         std::cerr << "<BoxAdminitration::updateBox> Box " << boxid << " is out of range [0,"
@@ -129,7 +129,7 @@ void BoxAdministration::updateBox(unsigned int boxid, const nmx::data_point &poi
         box.maxcharge = point.charge;
 }
 
-bool BoxAdministration::checkBox(unsigned int boxid, const nmx::data_point &point) {
+bool NMXBoxAdministration::checkBox(unsigned int boxid, const nmx::DataPoint &point) {
 
     if (boxid > nmx::NBOXES-1)
         std::cerr << "<BoxAdminitration::checkBox> Box " << boxid << " is out of range [0,"
@@ -145,7 +145,7 @@ bool BoxAdministration::checkBox(unsigned int boxid, const nmx::data_point &poin
     return false;
 }
 
-inline void BoxAdministration::resetBox(unsigned int boxid) {
+inline void NMXBoxAdministration::resetBox(unsigned int boxid) {
 
     if (boxid > nmx::NBOXES-1)
         std::cerr << "<BoxAdminitration::resetBox> Box " << boxid << " is out of range [0,"
@@ -159,7 +159,7 @@ inline void BoxAdministration::resetBox(unsigned int boxid) {
     m_boxList.at(boxid).maxcharge = 0;
 }
 
-nmx::box& BoxAdministration::getBox(unsigned int boxid) {
+nmx::Box& NMXBoxAdministration::getBox(unsigned int boxid) {
 
     if (boxid > nmx::NBOXES-1)
         std::cerr << "<BoxAdminitration::getBox> Box " << boxid << " is out of range [0,"
@@ -168,7 +168,7 @@ nmx::box& BoxAdministration::getBox(unsigned int boxid) {
     return m_boxList.at(boxid);
 }
 
-void BoxAdministration::init() {
+void NMXBoxAdministration::init() {
 
     for (uint i = 0; i < nmx::NBOXES; i++) {
 
@@ -178,7 +178,7 @@ void BoxAdministration::init() {
     }
 }
 
-void BoxAdministration::printStack() {
+void NMXBoxAdministration::printStack() {
 
     std::cout << "Stack : ";
 
@@ -193,7 +193,7 @@ void BoxAdministration::printStack() {
     std::cout << "\n";
 }
 
-void BoxAdministration::printQueue() {
+void NMXBoxAdministration::printQueue() {
 
     std::cout << "Queue : ";
 
@@ -209,7 +209,7 @@ void BoxAdministration::printQueue() {
     std::cout << "\n";
 }
 
-void BoxAdministration::printBoxesInQueue() {
+void NMXBoxAdministration::printBoxesInQueue() {
 
     std::cout << "Boxes in queue : \n";
 
@@ -217,7 +217,7 @@ void BoxAdministration::printBoxesInQueue() {
 
     while (boxid != -1) {
 
-        nmx::box box = getBox(boxid);
+        nmx::Box box = getBox(boxid);
 
         std::cout << "Box " << boxid << " :\n";
         std::cout << "        Strips [" << box.min_strip << ", " << box.max_strip << "]\n";

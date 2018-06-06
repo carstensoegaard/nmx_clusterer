@@ -7,9 +7,9 @@
 
 #include <thread>
 
-#include "NMXClustererDefinitions.h"
-#include "../../NMXPlaneClusterer.h"
-#include "../../NMXClusterPairing.h"
+#include "../include/NMXClustererDefinitions.h"
+#include "../include/NMXPlaneClusterer.h"
+#include "../include/NMXClusterPairing.h"
 
 /*! Main interface.
   *
@@ -36,7 +36,7 @@ public:
      * @param plane Plane of origin 0 for X and 1 for Y
      * @param point The triplet (strip, charge, time)
      */
-    void addDatapoint(unsigned int plane, nmx::data_point &point);
+    void addDatapoint(unsigned int plane, nmx::DataPoint &point);
 
     /*! End the run.
      *

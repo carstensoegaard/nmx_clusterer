@@ -9,9 +9,9 @@
 #include <iostream>
 #include <iomanip>
 
-#include "clusterer/include/NMXClustererDefinitions.h"
-#include "BoxAdministration.h"
-#include "NMXClusterManager.h"
+#include "../../clusterer/include/NMXClustererDefinitions.h"
+#include "../../clusterer/include/NMXBoxAdministration.h"
+#include "../../clusterer/include/NMXClusterManager.h"
 
 namespace nmx {
 
@@ -35,7 +35,7 @@ namespace nmx {
 
     //*****************************************************************************************************************
 
-    static bool checkPoint(const nmx::data_point& point, std::string s) {
+    static bool checkPoint(const nmx::DataPoint& point, std::string s) {
 
         if (point.strip >= nmx::STRIPS_PER_PLANE) {
             std::cerr << "<" << s << "> Strip # " << point.strip << " is larger than " << nmx::STRIPS_PER_PLANE - 1
@@ -55,7 +55,7 @@ namespace nmx {
         if (minortime >= nmx::DATA_MAX_MINOR) {
             std::cerr << "<" << s << "> Minor-time = " << minortime << " max minor-time = " << nmx::DATA_MAX_MINOR - 1
                       << "\n";
-            std::cerr << " *** Point will not be added to the buffer! ***\n";
+            std::cerr << " *** Point will not be added to the DataBuffer! ***\n";
             return false;
         }
 
@@ -64,7 +64,7 @@ namespace nmx {
 
     //*****************************************************************************************************************
 
-    static void printPoint(const nmx::data_point &point) {
+    static void printPoint(const nmx::DataPoint &point) {
 
         std::cout << "Point : S = " << point.strip << " C = " << point.charge << " T = " << point.time << std::endl;
     }
@@ -74,34 +74,34 @@ namespace nmx {
     static void printTimeOrderedBuffer(const nmx::time_ordered_buffer& time_ordered_buffer,
                                        const nmx::dataColumn_t& SortQ) {
 
-        std::cout << "Time ordered buffer :\n";
+        std::cout << "Time ordered DataBuffer :\n";
 
         for (uint idx = 0; idx < nmx::DATA_MAX_MINOR; idx++) {
 
-            auto tbuf = time_ordered_buffer.at(SortQ.at(idx));
+            nmx::dataBufferColumn_t tbuf = time_ordered_buffer.at(SortQ.at(idx));
             auto buf = tbuf.at(idx);
 
-            if (buf.npoints == 0)
+            if (buf.nPoints == 0)
                 continue;
 
             std::cout << "Index " << idx << std::endl;
 
             std::cout << "Strip  ";
-            for (uint ientry = 0; ientry < buf.npoints; ientry++) {
+            for (uint ientry = 0; ientry < buf.nPoints; ientry++) {
 
                 auto point = buf.data.at(ientry);
                 std::cout << std::setw(5) << point.strip;
             }
 
             std::cout << "\nTime   ";
-            for (uint ientry = 0; ientry < buf.npoints; ientry++) {
+            for (uint ientry = 0; ientry < buf.nPoints; ientry++) {
 
                 auto point = buf.data.at(ientry);
                 std::cout << std::setw(5) << point.time;
             }
 
             std::cout << "\nCharge ";
-            for (uint ientry = 0; ientry < buf.npoints; ientry++) {
+            for (uint ientry = 0; ientry < buf.nPoints; ientry++) {
 
                 auto point = buf.data.at(ientry);
                 std::cout << std::setw(5) << point.charge;
@@ -112,7 +112,7 @@ namespace nmx {
 
     //*****************************************************************************************************************
 
-    static void printBox(const nmx::box &box) {
+    static void printBox(const nmx::Box &box) {
 
         std::cout << "Strips [" << box.min_strip << ", " << box.max_strip << "]\n";
         std::cout << "Time   [" << box.min_time << ", " << box.max_time << "]\n";
@@ -120,11 +120,11 @@ namespace nmx {
 
     //*****************************************************************************************************************
 
-    static void printBox(int boxid, BoxAdministration *boxes) {
+    static void printBox(int boxid, NMXBoxAdministration *boxes) {
 
         std::cout << "Box-id " << boxid << std::endl;
 
-        nmx::box box = boxes->getBox(boxid);
+        nmx::Box box = boxes->getBox(boxid);
 
         printBox(box);
     }
@@ -159,7 +159,7 @@ namespace nmx {
 
         for (uint idx = 0; idx < nmx::DATA_MINOR_BITMASK - 1; idx++) {
             if (majortime_buffer.at(idx) < majortime_buffer.at(idx + 1)) {
-                std::cout << "Wrong order in B2 buffer\n";
+                std::cout << "Wrong order in B2 DataBuffer\n";
                 ok = false;
             }
             if (majortime_buffer.at(idx) > majortime_buffer.at(idx + 1)) {

@@ -10,11 +10,11 @@
 #include <vector>
 #include <array>
 
-#include "clusterer/include/NMXClustererDefinitions.h"
+#include "../../clusterer/include/NMXClustererDefinitions.h"
 
 
 typedef std::array<uint32_t, 4> line_data;
-typedef std::vector<nmx::data_point> plane;
+typedef std::vector<nmx::DataPoint> plane;
 typedef std::array<plane, 2> event;
 
 class SpecialDataReader {
@@ -23,7 +23,7 @@ public:
 
     SpecialDataReader();
 
-    nmx::fullCluster ReadNextEvent();
+    nmx::FullCluster ReadNextEvent();
 
 private:
 

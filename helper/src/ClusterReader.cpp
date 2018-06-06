@@ -5,7 +5,7 @@
 #include <sstream>
 #include <iterator>
 #include <vector>
-#include "ClusterReader.h"
+#include "../include/ClusterReader.h"
 
 ClusterReader::ClusterReader() {
 
@@ -23,15 +23,15 @@ ClusterReader::~ClusterReader() {
     m_ifile.close();
 }
 
-std::vector<nmx::fullCluster> ClusterReader::getAllClusters() {
+std::vector<nmx::FullCluster> ClusterReader::getAllClusters() {
 
     std::cout << "Getting all clusters ..." << std::endl;
 
-    std::vector<nmx::fullCluster> ret;
+    std::vector<nmx::FullCluster> ret;
 
-    nmx::fullCluster cluster = getNextCluster();
+    nmx::FullCluster cluster = getNextCluster();
 
-    while (cluster.clusters.at(0).npoints != 0) {
+    while (cluster.clusters.at(0).nPoints != 0) {
 
         ret.push_back(cluster);
 
@@ -41,18 +41,18 @@ std::vector<nmx::fullCluster> ClusterReader::getAllClusters() {
     return ret;
 }
 
-std::vector<nmx::fullCluster> ClusterReader::getAllEvents() {
+std::vector<nmx::FullCluster> ClusterReader::getAllEvents() {
 
     std::cout << "Getting all events ... " << std::endl;
 
-    std::vector<nmx::fullCluster> ret;
+    std::vector<nmx::FullCluster> ret;
 
-    nmx::fullCluster event = getNextEvent();
+    nmx::FullCluster event = getNextEvent();
 
-    /*std::cout << "Got an event with " << event.clusters.at(0).npoints << " x-points and "
-              << event.clusters.at(1).npoints << " y-points." << std::endl;*/
+    /*std::cout << "Got an event with " << event.clusters.at(0).nPoints << " x-points and "
+              << event.clusters.at(1).nPoints << " y-points." << std::endl;*/
 
-    while (event.clusters.at(0).npoints != 0) {
+    while (event.clusters.at(0).nPoints != 0) {
 
         ret.push_back(event);
 
@@ -60,17 +60,17 @@ std::vector<nmx::fullCluster> ClusterReader::getAllEvents() {
 
         event = getNextEvent();
 
-        /*std::cout << "Got an event with " << event.clusters.at(0).npoints << " x-points and "
-                  << event.clusters.at(1).npoints << " y-points." << std::endl;*/
+        /*std::cout << "Got an event with " << event.clusters.at(0).nPoints << " x-points and "
+                  << event.clusters.at(1).nPoints << " y-points." << std::endl;*/
 
     }
 
     return ret;
 }
 
-nmx::fullCluster ClusterReader::getNextEvent() {
+nmx::FullCluster ClusterReader::getNextEvent() {
 
-    nmx::fullCluster ret;
+    nmx::FullCluster ret;
 
     std::string line;
 
@@ -101,9 +101,9 @@ nmx::fullCluster ClusterReader::getNextEvent() {
     return ret;
 }
 
-nmx::fullCluster ClusterReader::getNextCluster() {
+nmx::FullCluster ClusterReader::getNextCluster() {
 
-    nmx::fullCluster ret;
+    nmx::FullCluster ret;
 
     std::string line;
 
@@ -139,7 +139,7 @@ std::vector<int> ClusterReader::readLine() {
     return ret;
 }
 
-nmx::cluster ClusterReader::readPlane() {
+nmx::Cluster ClusterReader::readPlane() {
 
     std::vector<int> time   = readLine();
     std::vector<int> strip  = readLine();
@@ -148,11 +148,11 @@ nmx::cluster ClusterReader::readPlane() {
     return convertToPlaneCluster(time, strip, charge);
 }
 
-nmx::cluster ClusterReader::convertToPlaneCluster(std::vector<int> time,
+nmx::Cluster ClusterReader::convertToPlaneCluster(std::vector<int> time,
                                                   std::vector<int> strip,
                                                   std::vector<int> charge) {
 
-    nmx::cluster cluster;
+    nmx::Cluster cluster;
 
     if (time.size() != strip.size() && strip.size() != charge.size()){
         std::cerr << "Array sizes do not match! Time-size = " << time.size() << ", strip-size = " << strip.size()
@@ -162,12 +162,12 @@ nmx::cluster ClusterReader::convertToPlaneCluster(std::vector<int> time,
 
     for (unsigned int idx = 0; idx < time.size(); idx++) {
 
-        nmx::data_point &point = cluster.data.at(cluster.npoints);
+        nmx::DataPoint &point = cluster.data.at(cluster.nPoints);
 
         point.time   = static_cast<uint32_t >(time.at(idx));
         point.strip  = static_cast<uint32_t >(strip.at(idx));
         point.charge = static_cast<uint32_t >(charge.at(idx));
-        cluster.npoints++;
+        cluster.nPoints++;
     }
 
     return cluster;

@@ -9,10 +9,10 @@
 #include <thread>
 #include <mutex>
 
-#include "clusterer/include/NMXClustererDefinitions.h"
-#include "NMXClustererHelper.h"
-#include "NMXClusterManager.h"
-#include "NMXClusterPairing.h"
+#include "../clusterer/include/NMXClustererDefinitions.h"
+#include "../helper/include/NMXClustererHelper.h"
+#include "../clusterer/include/NMXClusterManager.h"
+#include "../clusterer/include/NMXClusterPairing.h"
 
 class NMXTimeOrderedBuffer {
 

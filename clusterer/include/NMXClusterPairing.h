@@ -8,9 +8,9 @@
 #include <thread>
 #include <mutex>
 
-#include "clusterer/include/NMXClustererDefinitions.h"
-#include "NMXClusterManager.h"
-#include "NMXLocationFinder.h"
+#include "../include/NMXClustererDefinitions.h"
+#include "../include/NMXClusterManager.h"
+#include "../include/NMXLocationFinder.h"
 
 class NMXClusterPairing {
 
@@ -35,7 +35,7 @@ public:
     std::array<unsigned int, 2> m_nIn;
     std::array<unsigned int, 2> m_nOut;
 
-    std::array<nmx::clusterParingEntry, nmx::CLUSTER_MAX_MINOR> m_time_ordered_buffer;
+    std::array<nmx::ClusterParingEntry, nmx::CLUSTER_MAX_MINOR> m_time_ordered_buffer;
     nmx::dataColumn_t m_majortime_buffer;
     uint32_t m_i1;
 
@@ -65,11 +65,11 @@ public:
     void addToBuffer(unsigned int plane, int idx, uint minorTime);
     void slideTimeWindow(uint d, uint minorTime, uint majorTime);
 
-    void pairQueues(nmx::clusterParingEntry &this_queue, nmx::clusterParingEntry &next_queue);
-    nmx::Qmatrix calculateQmatrix(nmx::clusterParingEntry &this_queue, nmx::clusterParingEntry &next_queue);
-    nmx::clusterPair findMinQ(const nmx::Qmatrix &qmatrix);
+    void pairQueues(nmx::ClusterParingEntry &this_queue, nmx::ClusterParingEntry &next_queue);
+    nmx::Qmatrix calculateQmatrix(nmx::ClusterParingEntry &this_queue, nmx::ClusterParingEntry &next_queue);
+    nmx::ClusterIndexPair findMinQ(const nmx::Qmatrix &qmatrix);
 
-    void appendIndexToQueue(unsigned int plane, nmx::clusterParingEntry &queue, int clusterIdx);
+    void appendIndexToQueue(unsigned int plane, nmx::ClusterParingEntry &queue, int clusterIdx);
 
     unsigned int getQueueLength(unsigned int plane, int idx);
 

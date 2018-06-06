@@ -8,7 +8,7 @@
 #include <array>
 #include <mutex>
 
-#include "clusterer/include/NMXClustererDefinitions.h"
+#include "NMXClustererDefinitions.h"
 
 class NMXClusterManager {
 
@@ -22,7 +22,7 @@ public:
 
     int getLink1(unsigned int plane, unsigned int idx);
 
-    nmx::cluster &getCluster(unsigned int plane, unsigned int idx);
+    nmx::Cluster &getCluster(unsigned int plane, unsigned int idx);
 
     void reset();
 
@@ -35,7 +35,9 @@ private:
     std::array<int, 2> m_stackHead;
     std::array<int, 2> m_stackTail;
 
-    std::array<nmx::cluster_buffer, 2> m_buffer;
+    typedef std::array<nmx::Cluster, nmx::NCLUSTERS> clusterBuffer_t;
+
+    std::array<clusterBuffer_t, 2> m_buffer;
 
     std::mutex m_mutex[2];
 

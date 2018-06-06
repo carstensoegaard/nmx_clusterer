@@ -4,7 +4,7 @@
 
 #include "NMXTimeOrderedBuffer.h"
 
-#include "NMXPlaneClusterer.h"
+#include "../clusterer/include/NMXPlaneClusterer.h"
 
 NMXTimeOrderedBuffer::NMXTimeOrderedBuffer(NMXClusterManager &clusterManager, NMXClusterPairing &clusterPairing)
         : m_verbose_level(0),

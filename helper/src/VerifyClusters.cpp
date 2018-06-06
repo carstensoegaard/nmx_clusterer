@@ -2,19 +2,19 @@
 // Created by soegaard on 4/30/18.
 //
 
-#include "VerifyClusters.h"
+#include "../include/VerifyClusters.h"
 
 VerifyClusters::VerifyClusters() {
 
 }
 
-void VerifyClusters::associateClusterWithEvent(nmx::fullCluster &cluster,
-                                               const std::vector<nmx::fullCluster> &events) {
+void VerifyClusters::associateClusterWithEvent(nmx::FullCluster &cluster,
+                                               const std::vector<nmx::FullCluster> &events) {
 
     int maxMatching = 0;
     int bestMatch = -1;
 
-    //std::cout << "Comparing cluster to " << events.size() << " events." << std::endl;
+    //std::cout << "Comparing Cluster to " << events.size() << " events." << std::endl;
 
     for (unsigned int ievent = 0; ievent < events.size(); ievent++) {
 
@@ -36,10 +36,10 @@ void VerifyClusters::associateClusterWithEvent(nmx::fullCluster &cluster,
         std::cout << "No match found!" << std::endl;
 }
 
-std::vector<nmx::fullCluster> VerifyClusters::findMatchingClusters(const nmx::fullCluster &event,
-                                                                   std::vector<nmx::fullCluster> &clusters) {
+std::vector<nmx::FullCluster> VerifyClusters::findMatchingClusters(const nmx::FullCluster &event,
+                                                                   std::vector<nmx::FullCluster> &clusters) {
 
-    std::vector<nmx::fullCluster> ret;
+    std::vector<nmx::FullCluster> ret;
 
     auto iter = clusters.begin();
 
@@ -56,7 +56,7 @@ std::vector<nmx::fullCluster> VerifyClusters::findMatchingClusters(const nmx::fu
     return ret;
 }
 
-int VerifyClusters::numberOfMatchingPoints(const nmx::fullCluster &event, const nmx::fullCluster &cluster) {
+int VerifyClusters::numberOfMatchingPoints(const nmx::FullCluster &event, const nmx::FullCluster &cluster) {
 
     int nMatches = 0;
 
@@ -66,17 +66,17 @@ int VerifyClusters::numberOfMatchingPoints(const nmx::fullCluster &event, const 
     return nMatches;
 }
 
-int VerifyClusters::numberOfMatchingPointsPlane(const nmx::cluster &event, const nmx::cluster &cluster) {
+int VerifyClusters::numberOfMatchingPointsPlane(const nmx::Cluster &event, const nmx::Cluster &cluster) {
 
     int nMatches = 0;
 
-    for (unsigned int ievent = 0; ievent < event.npoints; ievent++) {
+    for (unsigned int ievent = 0; ievent < event.nPoints; ievent++) {
 
-        const nmx::data_point &evPoint = event.data.at(ievent);
+        const nmx::DataPoint &evPoint = event.data.at(ievent);
 
-        for (unsigned int icluster = 0; icluster < cluster.npoints; icluster++) {
+        for (unsigned int icluster = 0; icluster < cluster.nPoints; icluster++) {
 
-            const nmx::data_point &clPoint = cluster.data.at(icluster);
+            const nmx::DataPoint &clPoint = cluster.data.at(icluster);
 
             if (pointsMatch(evPoint, clPoint))
                 nMatches++;
@@ -86,7 +86,7 @@ int VerifyClusters::numberOfMatchingPointsPlane(const nmx::cluster &event, const
     return nMatches;
 }
 
-bool VerifyClusters::pointsMatch(const nmx::data_point &p1, const nmx::data_point &p2) {
+bool VerifyClusters::pointsMatch(const nmx::DataPoint &p1, const nmx::DataPoint &p2) {
 
     if ((p1.strip == p2.strip) && (p1.time == p2.time) && (p1.charge == p2.charge))
         return true;

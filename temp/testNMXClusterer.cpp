@@ -5,8 +5,8 @@
 #include <iostream>
 #include <iomanip>
 
-#include "clusterer/include/NMXClustererDefinitions.h"
-#include "NMXPlaneClusterer.h"
+#include "../clusterer/include/NMXClustererDefinitions.h"
+#include "../clusterer/include/NMXPlaneClusterer.h"
 
 void printBuffer(const nmx::buffer &buffer) {
 

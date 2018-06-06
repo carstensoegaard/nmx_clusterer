@@ -5,7 +5,7 @@
 #include <iostream>
 #include <thread>
 
-#include "NMXClusterManager.h"
+#include "../include/NMXClusterManager.h"
 
 NMXClusterManager::NMXClusterManager()
         : m_verboseLevel(0)
@@ -33,7 +33,7 @@ int NMXClusterManager::getClusterFromStack(unsigned int plane) {
     m_mutex[plane].lock();
 
     if (m_verboseLevel > 2)
-        std::cout << "<NMXClusterManager::gerClusterFromStack> Getting cluster from stack "
+        std::cout << "<NMXClusterManager::gerClusterFromStack> Getting Cluster from stack "
                   << (plane ? "Y" : "X") << "!" << std::endl;
 
     if (m_verboseLevel > 2) {
@@ -48,7 +48,7 @@ int NMXClusterManager::getClusterFromStack(unsigned int plane) {
     if (m_stackHead.at(plane) < 0) // Is the stack empty ?
         m_stackTail.at(plane) = -1; // Indicate this by setting the tail to -1
 
-    // Decouple cluster from stack (set link1 to -1)
+    // Decouple Cluster from stack (set link1 to -1)
     m_buffer.at(plane).at(idx).box.link1 = -1;
 
     if (m_verboseLevel > 2) {
@@ -67,7 +67,7 @@ int NMXClusterManager::getClusterFromStack(unsigned int plane) {
 void NMXClusterManager::returnClusterToStack(unsigned int plane, unsigned int idx) {
 
     if (m_verboseLevel > 0) {
-        std::cout << "<NMXClusterManager::returnClusterToStack> Returning cluster # " << idx
+        std::cout << "<NMXClusterManager::returnClusterToStack> Returning Cluster # " << idx
                   << " to plane " << (plane ? "Y" : "X") << std::endl;
         std::cout << "Before:\n";
         printStack(plane);
@@ -97,25 +97,25 @@ void NMXClusterManager::returnClusterToStack(unsigned int plane, unsigned int id
     }
 }
 
-nmx::cluster & NMXClusterManager::getCluster(unsigned int plane, unsigned int idx) {
+nmx::Cluster & NMXClusterManager::getCluster(unsigned int plane, unsigned int idx) {
 
     if (idx > nmx::NCLUSTERS) {
         std::cout << "<NMXClusterManager::getCluster> Index " << idx << " out of range!\n";
         throw 1;
     }
 
-    nmx::cluster_buffer &buffer = m_buffer.at(plane);
+    clusterBuffer_t &buffer = m_buffer.at(plane);
 
-    nmx::cluster& cluster = buffer.at(idx);
+    nmx::Cluster& cluster = buffer.at(idx);
 
     return cluster;
 }
 
 int NMXClusterManager::getLink1(unsigned int plane, unsigned int idx) {
 
-    nmx::cluster &cluster = getCluster(plane, idx);
+    nmx::Cluster &cluster = getCluster(plane, idx);
 
-    nmx::box &box = cluster.box;
+    nmx::Box &box = cluster.box;
     return box.link1;
 }
 
@@ -125,13 +125,13 @@ void NMXClusterManager::reset() {
         m_stackHead.at(plane) = nmx::NCLUSTERS - 1;
         m_stackTail.at(plane) = 0;
 
-        nmx::cluster_buffer &buffer = m_buffer.at(plane);
+        clusterBuffer_t &buffer = m_buffer.at(plane);
 
         for (unsigned int i = 0; i < nmx::NCLUSTERS; i++) {
 
-            nmx::cluster &cluster = buffer.at(i);
+            nmx::Cluster &cluster = buffer.at(i);
 
-            cluster.npoints = 0;
+            cluster.nPoints = 0;
 
             cluster.box.link1 = i - 1;
             cluster.box.link2 = -1;
@@ -145,7 +145,7 @@ void NMXClusterManager::printStack(unsigned int plane) {
 
     int boxid = m_stackHead.at(plane);
 
-    nmx::cluster_buffer &buffer = m_buffer.at(plane);
+    clusterBuffer_t &buffer = m_buffer.at(plane);
 
     while (boxid != -1) {
 

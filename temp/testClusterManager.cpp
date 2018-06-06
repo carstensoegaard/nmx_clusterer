@@ -7,7 +7,7 @@
 
 #include <vector>
 #include <iostream>
-#include "NMXClusterManager.h"
+#include "../clusterer/include/NMXClusterManager.h"
 
 int main() {
 

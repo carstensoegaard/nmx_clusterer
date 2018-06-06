@@ -10,7 +10,7 @@
 #include <thread>
 #include <mutex>
 
-#include "clusterer/include/NMXClustererDefinitions.h"
+#include "../../clusterer/include/NMXClustererDefinitions.h"
 
 class NMXClustererVerification {
 
@@ -21,8 +21,8 @@ public:
     static NMXClustererVerification* getInstance();
     ~NMXClustererVerification();
 
-    void insertEventInQueue(const nmx::fullCluster &event);
-    void insertClusterInQueue(const nmx::fullCluster &cluster);
+    void insertEventInQueue(const nmx::FullCluster &event);
+    void insertClusterInQueue(const nmx::FullCluster &cluster);
 
     void endRun();
     void reset();
@@ -44,16 +44,16 @@ private:
 
     uint64_t m_ievent;
 
-    typedef std::array<nmx::fullCluster, 100> queue;
+    typedef std::array<nmx::FullCluster, 100> queue;
     std::array<queue, 2> m_queue;
 
     unsigned int m_In[2];
     unsigned int m_Out[2];
 
-    typedef std::array<std::vector<nmx::fullCluster>, 2> bufferEntry;
+    typedef std::array<std::vector<nmx::FullCluster>, 2> bufferEntry;
 
     std::array<bufferEntry, m_maxMinor> m_time_ordered_buffer;
-    nmx::row_array m_majortime_buffer;
+    nmx::dataColumn_t m_majortime_buffer;
     uint32_t m_i1;
 
     std::ofstream m_file;
@@ -70,30 +70,30 @@ private:
     uint32_t getMinorTime(uint32_t time);
     uint32_t getMajorTime(uint32_t time);
 
-    void addToBuffer(unsigned int shifter, nmx::fullCluster &object, uint minorTime);
+    void addToBuffer(unsigned int shifter, nmx::FullCluster &object, uint minorTime);
     void slideTimeWindow(uint d, uint minorTime, uint majorTime);
 
     void findMatches(bufferEntry &thisEntry, bufferEntry &nextEntry);
-    void compareToClusters(const nmx::fullCluster &event,
-                           std::vector<nmx::fullCluster> &thisClusterQueue,
-                           std::vector<nmx::fullCluster> &nextClusterQueue);
-    std::vector<nmx::fullCluster>::iterator compareToQueue(const nmx::fullCluster &event,
-                                                                  std::vector<nmx::fullCluster> &clusterQueue,
+    void compareToClusters(const nmx::FullCluster &event,
+                           std::vector<nmx::FullCluster> &thisClusterQueue,
+                           std::vector<nmx::FullCluster> &nextClusterQueue);
+    std::vector<nmx::FullCluster>::iterator compareToQueue(const nmx::FullCluster &event,
+                                                                  std::vector<nmx::FullCluster> &clusterQueue,
                                                                   unsigned int &nMatches);
-    int numberOfMatchingPoints(const nmx::fullCluster &event, const nmx::fullCluster &cluster);
-    int numberOfMatchingPointsPlane(const nmx::cluster &event, const nmx::cluster &cluster);
-    bool pointsMatch(const nmx::data_point &p1, const nmx::data_point &p2);
+    int numberOfMatchingPoints(const nmx::FullCluster &event, const nmx::FullCluster &cluster);
+    int numberOfMatchingPointsPlane(const nmx::Cluster &event, const nmx::Cluster &cluster);
+    bool pointsMatch(const nmx::DataPoint &p1, const nmx::DataPoint &p2);
 
-    int getTotalPoints(const nmx::fullCluster &object);
+    int getTotalPoints(const nmx::FullCluster &object);
 
-    void writeEventToFile(unsigned int eventNo, nmx::fullCluster &event);
+    void writeEventToFile(unsigned int eventNo, nmx::FullCluster &event);
     void writeClustersToFile(unsigned int eventNo, bufferEntry &entry);
-    void writeObjectToFile(nmx::fullCluster &object);
-    void writePlaneToFile(nmx::cluster &plane);
+    void writeObjectToFile(nmx::FullCluster &object);
+    void writePlaneToFile(nmx::Cluster &plane);
 
     // For debugging
 
-    void printFullCluster(const nmx::fullCluster &cluster);
+    void printFullCluster(const nmx::FullCluster &cluster);
 
     /*
     void printSortBuffer();

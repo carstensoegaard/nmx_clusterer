@@ -11,7 +11,7 @@
 #include <thread>
 #include <mutex>
 
-#include "clusterer/include/NMXClustererDefinitions.h"
+#include "../clusterer/include/NMXClustererDefinitions.h"
 
 namespace EVMAN {
 

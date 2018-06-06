@@ -5,8 +5,8 @@
 #include <iomanip>
 
 //#include "NMXClusterPairing.h"
-#include "NMXClustererVerification.h"
-#include "NMXLocationFinder.h"
+#include "../../helper/include/NMXClustererVerification.h"
+#include "../include/NMXLocationFinder.h"
 
 NMXLocationFinder::NMXLocationFinder(NMXClusterManager &clustermanager)
         : m_clusterManager(clustermanager)
@@ -20,7 +20,7 @@ NMXLocationFinder::~NMXLocationFinder() {
     //std::cout << "Total yPoints = " << totalyPoints << std::endl;
 }
 
-nmx_location NMXLocationFinder::find(nmx::pairBuffer &buf) {
+nmx_location NMXLocationFinder::find(nmx::PairBuffer &buf) {
 
     nmx_location loc;
     loc.time = -1;
@@ -29,36 +29,36 @@ nmx_location NMXLocationFinder::find(nmx::pairBuffer &buf) {
 
        for (unsigned int i = 0; i < buf.npairs; i++) {
 
-           nmx::cluster xcluster = m_clusterManager.getCluster(0, buf.pairs.at(i).x_idx);
-           nmx::cluster ycluster = m_clusterManager.getCluster(1, buf.pairs.at(i).y_idx);
+           nmx::Cluster xcluster = m_clusterManager.getCluster(0, buf.pairs.at(i).x_idx);
+           nmx::Cluster ycluster = m_clusterManager.getCluster(1, buf.pairs.at(i).y_idx);
 
-           nmx::fullCluster cluster;
+           nmx::FullCluster cluster;
            cluster.clusters.at(0) = xcluster;
            cluster.clusters.at(1) = ycluster;
 
-           //totalxPoints += xcluster.npoints;
-           //totalyPoints += ycluster.npoints;
+           //totalxPoints += xcluster.nPoints;
+           //totalyPoints += ycluster.nPoints;
 
 
            m_file << "******\n";
            m_file << "x-points:\n";
-           for (unsigned int ix = 0; ix < xcluster.npoints; ix++)
+           for (unsigned int ix = 0; ix < xcluster.nPoints; ix++)
                m_file << std::setw(10) << xcluster.data.at(ix).time << " ";
            m_file << "\n";
-           for (unsigned int ix = 0; ix < xcluster.npoints; ix++)
+           for (unsigned int ix = 0; ix < xcluster.nPoints; ix++)
                m_file << std::setw(10) << xcluster.data.at(ix).strip << " ";
            m_file << "\n";
-           for (unsigned int ix = 0; ix < xcluster.npoints; ix++)
+           for (unsigned int ix = 0; ix < xcluster.nPoints; ix++)
                m_file << std::setw(10) << xcluster.data.at(ix).charge << " ";
            m_file << "\n";
            m_file << "y-points:\n";
-           for (unsigned int iy = 0; iy < ycluster.npoints; iy++)
+           for (unsigned int iy = 0; iy < ycluster.nPoints; iy++)
                m_file << std::setw(10) << ycluster.data.at(iy).time << " ";
            m_file << "\n";
-           for (unsigned int iy = 0; iy < ycluster.npoints; iy++)
+           for (unsigned int iy = 0; iy < ycluster.nPoints; iy++)
                m_file << std::setw(10) << ycluster.data.at(iy).strip << " ";
            m_file << "\n";
-           for (unsigned int iy = 0; iy < ycluster.npoints; iy++)
+           for (unsigned int iy = 0; iy < ycluster.nPoints; iy++)
                m_file << std::setw(10) << ycluster.data.at(iy).charge << " ";
            m_file << "\n";
 

@@ -12,7 +12,7 @@ NMXClusterer::NMXClusterer()
 {
 }
 
-void NMXClusterer::addDatapoint(unsigned int plane, nmx::data_point &point) {
+void NMXClusterer::addDatapoint(unsigned int plane, nmx::DataPoint &point) {
 
     // Check than the plane is either 0 or 1.
     if (plane > 1) {
@@ -53,7 +53,7 @@ void NMXClusterer::reset() {
     // Reset the pairing algorithm.
     m_clusterPairing.reset();
 
-    // Reset the cluster-manager.
+    // Reset the Cluster-manager.
     m_clusterManager.reset();
 }
 

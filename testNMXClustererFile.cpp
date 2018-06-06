@@ -11,14 +11,14 @@
 #include <algorithm>
 
 #include "clusterer/include/NMXClustererDefinitions.h"
-#include "NMXPlaneClusterer.h"
-#include "SpecialDataReader.h"
-#include "NMXClustererVerification.h"
+#include "clusterer/include/NMXPlaneClusterer.h"
+#include "helper/include/SpecialDataReader.h"
+#include "helper/include/NMXClustererVerification.h"
 #include "clusterer/include/NMXClusterer.h"
 
 typedef std::chrono::high_resolution_clock Clock;
 
-void writeEventToFile(std::ofstream &file, nmx::fullCluster &event) {
+void writeEventToFile(std::ofstream &file, nmx::FullCluster &event) {
 
     file << "Event # " << event.eventNo << std::endl;
 
@@ -26,7 +26,7 @@ void writeEventToFile(std::ofstream &file, nmx::fullCluster &event) {
 
         file << (plane ? "Y:" : "X:") << std::endl;
 
-        int nPoints = event.clusters.at(plane).npoints;
+        int nPoints = event.clusters.at(plane).nPoints;
 
         for (int ipoint = 0; ipoint < nPoints; ipoint++)
             file << event.clusters.at(plane).data.at(ipoint).time << " ";
@@ -53,7 +53,7 @@ int main() {
     NMXClusterer c;
 
     SpecialDataReader reader;
-    std::vector<nmx::fullCluster> events;
+    std::vector<nmx::FullCluster> events;
 
     std::ofstream file;
     file.open("NMX_input_events.txt");
@@ -68,9 +68,9 @@ int main() {
 
     while (cont) {
 
-        nmx::fullCluster ievent = reader.ReadNextEvent();
+        nmx::FullCluster ievent = reader.ReadNextEvent();
 
-        if ((ievent.clusters.at(0).npoints == 0) && (ievent.clusters.at(1).npoints == 0))
+        if ((ievent.clusters.at(0).nPoints == 0) && (ievent.clusters.at(1).nPoints == 0))
             cont = false;
         else
             events.push_back(ievent);
@@ -89,30 +89,30 @@ int main() {
         for (unsigned int ievent = 0; ievent < events.size(); ievent++) {
 
             // Create a copy of the event
-            nmx::fullCluster ev = events.at(ievent);
+            nmx::FullCluster ev = events.at(ievent);
             ev.eventNo = ievent + events.size()*repeat;
 
             for (unsigned int iplane = 0; iplane < 2; iplane++) {
 
                 // Get the reference to the specific plane
-                nmx::cluster_points &plane = ev.clusters.at(iplane).data;
+                nmx::dataBufferRow_t &plane = ev.clusters.at(iplane).data;
 
                 // Modify time for the copy
-                for (unsigned int i = 0; i < ev.clusters.at(iplane).npoints; i++) {
+                for (unsigned int i = 0; i < ev.clusters.at(iplane).nPoints; i++) {
                     uint32_t time = plane.at(i).time * nspertimebin + multiplier * maxtimeperevent;
                     plane.at(i).time = time;
                 }
 
 
                 // Convert the copy to a vector - for simple jumbling of point order
-                std::vector<nmx::data_point> planeV(plane.begin(), plane.begin()+ev.clusters.at(iplane).npoints);
+                std::vector<nmx::DataPoint> planeV(plane.begin(), plane.begin()+ev.clusters.at(iplane).nPoints);
 
                 // Jumble points and erase them once inserted
                 while (planeV.size() > 0) {
 
                     uint ipoint = rand() % planeV.size();
 
-                    nmx::data_point point = planeV.at(ipoint);
+                    nmx::DataPoint point = planeV.at(ipoint);
                     c.addDatapoint(iplane, point);
                     planeV.erase(planeV.begin() + ipoint);
 
@@ -178,7 +178,7 @@ int main() {
                                    << std::setw(w2) << c.getNumberOfOldPointsX() << " points" << std::endl;
     std::cout.width(w1); std::cout << std::left << "Number of old points Y :" << std::right
                                    << std::setw(w2) << c.getNumberOfOldPointsY() << " points" << std::endl;
-    std::cout.width(w1); std::cout << std::left << "Number of failed cluster-requests : " << std::right
+    std::cout.width(w1); std::cout << std::left << "Number of failed Cluster-requests : " << std::right
                                    << std::setw(w2) << c.getFailedClusterRequests() << std::endl;
     std::cout.width(w1); std::cout << std::left << "Number of late clusters : " << std::right
                                    << std::setw(w2) << c.getNumberOfLateClusters() << std::endl;

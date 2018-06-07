@@ -30,7 +30,7 @@ namespace nmx {
      * This parameter effective sets the maximum allowed gap in strips for the clustering algorithm.
      * The gap is calculated by \f$ \textrm{Max}_{\textrm{gap}} = 2 \cdot \textrm{INCLUDE\_N\_NEIGHBOURS} +1 \f$
      */
-    const unsigned int INCLUDE_N_NEIGHBOURS = 1;
+    const unsigned int INCLUDE_N_NEIGHBOURS = 5;
 
     /*! Maximum cluster time
      *

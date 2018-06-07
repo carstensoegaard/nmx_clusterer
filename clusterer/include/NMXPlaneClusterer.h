@@ -32,6 +32,11 @@
  * NMX gas medium.
  */
 
+struct BufferEntry {
+    nmx::DataPoint point;
+    int link;
+};
+
 class NMXPlaneClusterer {
 
 
@@ -93,6 +98,8 @@ private:
 
     int m_plane;
 
+    std::array<BufferEntry, nmx::STRIPS_PER_PLANE> m_bufferEntries;
+
     uint64_t m_nOldPoints;
 
     std::thread pro;
@@ -114,15 +121,25 @@ private:
 
     nmx::dataRow_t m_mask;
 
-    nmx::dataColumn_t m_majortime_buffer;
+    nmx::dataColumn_t m_majortimeBuffer;
     nmx::dataColumn_t m_SortQ;
     nmx::dataColumn_t m_ClusterQ;
-    nmx::time_ordered_buffer m_time_ordered_buffer;
+    typedef std::array<int, nmx::CLUSTER_MAX_MINOR> dataBuffer_t;
+    std::array<dataBuffer_t, 2> m_time_ordered_buffer;
+    //nmx::time_ordered_buffer m_time_ordered_buffer;
 
     uint64_t m_nClusters = 0;
 
     uint32_t getMinorTime(uint32_t time);
     uint32_t getMajorTime(uint32_t time);
+
+    uint64_t m_nFailedEntryRequests = 0;
+    int m_queueHead = -1;
+    int m_queueTail = -1;
+    int getEntryFromQueue();
+    void insertEntryInQueue(unsigned int idx);
+    BufferEntry* getBufferEntry(unsigned int idx);
+    int getLastInQueue(int idx);
 
     void addToBuffer(const nmx::DataPoint &point, uint minorTime);
     void moveToClusterer(uint d, uint minorTime, uint majorTime);

@@ -83,13 +83,13 @@ void NMXPlaneClusterer::timeSorting() {
         if (m_verbose_level > 0) {
             nmx::printPoint(m_point_buffer);
             std::cout << "B1 = " << minorTime << ", B2 = " << majorTime << ", B2_buffer[" << minorTime << "] = "
-                      << m_majortime_buffer[minorTime] << " B2_buffer[0] = " << m_majortime_buffer.at(0)
+                      << m_majortimeBuffer[minorTime] << " B2_buffer[0] = " << m_majortimeBuffer.at(0)
                       << " i1 = " << m_i1 << std::endl;
         }
 
-        if (majorTime >= (m_majortime_buffer.at(0) + 1)) {
+        if (majorTime >= (m_majortimeBuffer.at(0) + 1)) {
 
-            if (majorTime == (m_majortime_buffer.at(0) + 1) && minorTime <= m_i1) {
+            if (majorTime == (m_majortimeBuffer.at(0) + 1) && minorTime <= m_i1) {
 
                 if (m_verbose_level > 0) {
                     std::cout << "Case 1\n";
@@ -99,7 +99,7 @@ void NMXPlaneClusterer::timeSorting() {
                 moveToClusterer(nmx::DATA_MINOR_BITMASK - m_i1 + std::min(m_i1, minorTime) + 1, minorTime, majorTime);
                 addToBuffer(m_point_buffer, minorTime);
 
-            } else { // majorTime > (m_majortime_buffer.at(0) + 1)
+            } else { // majorTime > (m_majortimeBuffer.at(0) + 1)
 
                 if (m_verbose_level > 0) {
                     std::cout << "Case 2\n";
@@ -118,7 +118,7 @@ void NMXPlaneClusterer::timeSorting() {
 
         } else { // majorTime <= m_buffer.at(0)
 
-            switch (majorTime - m_majortime_buffer.at(minorTime)) {
+            switch (majorTime - m_majortimeBuffer.at(minorTime)) {
 
                 case 1:
 
@@ -154,8 +154,8 @@ void NMXPlaneClusterer::timeSorting() {
 
 
         if (m_verbose_level > 2) {
-            nmx::printTimeOrderedBuffer(m_time_ordered_buffer, m_SortQ);
-            nmx::printMajorTimeBuffer(m_majortime_buffer);
+            //nmx::printTimeOrderedBuffer(m_time_ordered_buffer, m_SortQ);
+            nmx::printMajorTimeBuffer(m_majortimeBuffer);
         }
 
         m_new_point = false;
@@ -180,23 +180,19 @@ void NMXPlaneClusterer::clustering() {
         }
 
 
-        uint idx = m_nC % nmx::DATA_MAX_MINOR;
+        unsigned int idx = m_nC % nmx::DATA_MAX_MINOR;
 
         if (m_verbose_level > 1)
             std::cout << "Now extracting idx (" << m_ClusterQ[idx] << ", " << idx << ")" << std::endl;
 
-        nmx::DataBuffer &buf = m_time_ordered_buffer.at(m_ClusterQ[idx]).at(idx);
+        int queueIdx = m_time_ordered_buffer.at(m_ClusterQ[idx]).at(idx);
+        m_time_ordered_buffer.at(m_ClusterQ[idx]).at(idx) = -1;
+        //for (unsigned int ipoint = 0; ipoint < buf.nPoints; ipoint++) {
 
-        /*if (m_ClusterQ[idx] == 1 && idx == 43 && m_plane == 0) {
-            std::cout << "Buffer contains " << buf.nPoints << " points." << std::endl;
-            for (unsigned int i = 0; i < buf.nPoints; i++)
-                std::cout << "Point # " << i << " : time = " << buf.data.at(i).time << ", strip = "
-                          << buf.data.at(i).strip << ", charge = " << buf.data.at(i).charge << std::endl;
-        }*/
+        while (queueIdx != -1) {
 
-        for (unsigned int ipoint = 0; ipoint < buf.nPoints; ipoint++) {
-
-            nmx::DataPoint& point = buf.data.at(ipoint);
+            BufferEntry& entry = m_bufferEntries.at(queueIdx);
+            nmx::DataPoint& point = entry.point;
 
             if ((point.time-lastFlush)/nmx::MAX_CLUSTER_TIME > 2) {
                 checkBoxes(point.time);
@@ -300,9 +296,12 @@ void NMXPlaneClusterer::clustering() {
                             std::cerr << "Oldness is " << oldness << std::endl;
                     }
             }
+
+            int nextIdx = entry.link;
+            insertEntryInQueue(queueIdx);
+            queueIdx = nextIdx;
         }
 
-        buf.nPoints = 0;
         m_nC++;
     }
 }
@@ -316,15 +315,22 @@ void NMXPlaneClusterer::addToBuffer(const nmx::DataPoint &point, const uint mino
     uint32_t i0 = m_SortQ[minorTime];
 
     if (checkTrackPoint(point))
-        std::cout << "<NMXPlaneClusterer::addToBuffer> Track-point added to DataBuffer at idx : (" << i0 << ", " << minorTime
+        std::cout << "<NMXPlaneClusterer::addToBuffer> Track-point added to DataBuffer at idx : (" << i0 << ", "
+                  << minorTime
                   << ")" << std::endl;
 
+    int entryIdx = getEntryFromQueue();
+    BufferEntry* entry = getBufferEntry(entryIdx);
+    entry->point.strip  = point.strip;
+    entry->point.time   = point.time;
+    entry->point.charge = point.charge;
+    entry->link = -1;
 
-    nmx::dataBufferColumn_t &tbuf = m_time_ordered_buffer.at(i0);
-    nmx::DataBuffer &buf = tbuf.at(minorTime);
-
-    buf.data.at(buf.nPoints) = point;
-    buf.nPoints++;
+    int &queue = m_time_ordered_buffer.at(i0).at(minorTime);
+    if (queue == -1)
+        queue = entryIdx;
+    else
+        getBufferEntry(getLastInQueue(queue))->link = entryIdx;
 }
 
 void NMXPlaneClusterer::moveToClusterer(uint d, uint minorTime, uint majorTime) {
@@ -348,7 +354,7 @@ void NMXPlaneClusterer::moveToClusterer(uint d, uint minorTime, uint majorTime) 
         /*if (m_verbose_level > 1)
             std::cout << "Moving Cluster with idx " << idx << std::endl;*/
 
-        if (m_time_ordered_buffer.at(m_ClusterQ[idx]).at(idx).nPoints > 0) {
+        if (m_time_ordered_buffer.at(m_ClusterQ[idx]).at(idx) != -1) {
             std::cout << "Buffer not empty!!!!!!!!!!!!!!!!!!!!\n";
             std::cout << "nB = " << m_nB << std::endl;
             std::cout << "nC = " << m_nC << std::endl;
@@ -358,9 +364,9 @@ void NMXPlaneClusterer::moveToClusterer(uint d, uint minorTime, uint majorTime) 
         m_ClusterQ[idx] = !m_SortQ[idx];
 
         if (idx <= minorTime)
-            m_majortime_buffer.at(idx) = majorTime;
+            m_majortimeBuffer.at(idx) = majorTime;
         else
-            m_majortime_buffer.at(idx) = majorTime -1;
+            m_majortimeBuffer.at(idx) = majorTime -1;
     }
 
     m_nB += d;
@@ -665,6 +671,67 @@ bool NMXPlaneClusterer::flushCluster(const int boxid) {
     return true;
 }
 
+int NMXPlaneClusterer::getEntryFromQueue() {
+
+    while (m_queueHead == -1) {
+        m_nFailedEntryRequests++;
+        std::this_thread::yield();
+    }
+
+    int idx = m_queueHead;
+    m_queueHead = m_bufferEntries.at(idx).link;
+
+    return idx;
+}
+
+void NMXPlaneClusterer::insertEntryInQueue(unsigned int idx) {
+
+    if (idx >= nmx::STRIPS_PER_PLANE) {
+        std::cerr << "<NMXPlaneClusterer::insertEntryInQueue> Index = " << idx << " is too large!" << std::endl;
+        return;
+    }
+
+    if (m_queueHead == -1)
+        m_queueHead = idx;
+    else
+        m_bufferEntries.at(m_queueTail).link = idx;
+
+    m_queueTail = idx;
+}
+
+BufferEntry* NMXPlaneClusterer::getBufferEntry(unsigned int idx) {
+
+    BufferEntry* ret = nullptr;
+
+    if (idx >= nmx::STRIPS_PER_PLANE)
+        std::cerr << "<NMXPlaneClusterer::insertEntryInQueue> Index = " << idx << " is too large!" << std::endl;
+    else
+        ret = &m_bufferEntries.at(idx);
+
+    return ret;
+}
+
+int NMXPlaneClusterer::getLastInQueue(int idx) {
+
+    int ret = idx;
+
+    if (idx < -1 || idx >= static_cast<int>(nmx::STRIPS_PER_PLANE)) {
+        std::cerr << "<NMXPLaneClusterer::getLastInQueue> Index cannot be " << idx << " must be in [-1, "
+                  << nmx::STRIPS_PER_PLANE-1 << "]" << std::endl;
+        ret = INT32_MAX;
+    }
+
+    while (idx != -1) {
+
+        idx = m_bufferEntries.at(idx).link;
+
+        if (idx != -1)
+            ret = idx;
+    }
+
+    return ret;
+}
+
 uint32_t NMXPlaneClusterer::getLoBound(int strip) {
 
     strip -= nmx::INCLUDE_N_NEIGHBOURS;
@@ -741,17 +808,8 @@ void NMXPlaneClusterer::reset() {
     // Reset time-ordered DataBuffer
     for (uint index0 = 0; index0 < 2; index0++) {
 
-        nmx::dataBufferColumn_t &buf = m_time_ordered_buffer.at(index0);
-
-        for (uint index1 = 0; index1 < nmx::DATA_MAX_MINOR; index1++) {
-
-            auto &buffer = buf.at(index1);
-
-            buffer.nPoints = 0;
-
-            for (uint istrip = 0; istrip < nmx::STRIPS_PER_PLANE; istrip++)
-                buffer.data.at(istrip) = {0, 0, 0};
-        }
+        for (uint index1 = 0; index1 < nmx::DATA_MAX_MINOR; index1++)
+            m_time_ordered_buffer.at(index0).at(index1) = -1;
     }
 
     // Reset i1
@@ -763,10 +821,18 @@ void NMXPlaneClusterer::reset() {
 
     // Reset major-time DataBuffer
     for (uint i = 0; i < nmx::DATA_MAX_MINOR; ++i) {
-        m_majortime_buffer.at(i) = 0;
+        m_majortimeBuffer.at(i) = 0;
         m_SortQ.at(i) = 0;
         m_ClusterQ.at(i) = 1;
     }
+
+    // Reset the buffer-entry queue
+    unsigned int idxMax = nmx::STRIPS_PER_PLANE-1;
+    m_queueHead = 0;
+    for (unsigned int i = 0; i < idxMax; i++)
+        m_bufferEntries.at(i).link = i+1;
+    m_bufferEntries.at(idxMax).link = -1;
+    m_queueTail = idxMax;
 
     // Start threads again
     m_terminate = false;

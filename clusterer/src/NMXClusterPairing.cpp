@@ -111,7 +111,7 @@ void NMXClusterPairing::process() {
                     slideTimeWindow(nmx::CLUSTER_MAX_MINOR - m_i1 + std::min(m_i1, minorTime), minorTime, majorTime);
                     addToBuffer(plane, cluster_idx, minorTime);
 
-                } else { // majorTime > (m_majortime_buffer.at(0) + 1)
+                } else { // majorTime > (m_majortimeBuffer.at(0) + 1)
 
                     if (m_verbose_level > 1)
                         std::cout << "Case 2\n";
